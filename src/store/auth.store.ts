@@ -12,6 +12,9 @@ interface User {
   birthDate: string;
   gender: string;
   interestedIn: string[];
+  interests: string[];
+  lookingFor: string[];
+  sparks: number;
   location?: string;
 }
 
@@ -30,6 +33,8 @@ interface AuthState {
     birthDate: string;
     gender: string;
     interestedIn: string[];
+    interests?: string[];
+    lookingFor?: string[];
     bio?: string;
     photos?: string[];
   }) => Promise<boolean>;

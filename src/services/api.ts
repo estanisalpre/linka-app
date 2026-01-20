@@ -40,6 +40,8 @@ export const authApi = {
     birthDate: string;
     gender: string;
     interestedIn: string[];
+    interests?: string[];
+    lookingFor?: string[];
     bio?: string;
     photos?: string[];
   }) => api.post('/auth/register', data),
@@ -175,4 +177,39 @@ export const messageApi = {
     api.post(`/messages/${connectionId}`, { content, type }),
 
   getUnreadCount: () => api.get('/messages/unread'),
+};
+
+// Sparks API (sistema de chispas/moneda virtual)
+export const sparksApi = {
+  // Obtener balance actual
+  getBalance: () => api.get('/sparks/balance'),
+
+  // Obtener historial de transacciones
+  getTransactions: (limit = 20, offset = 0) =>
+    api.get(`/sparks/transactions?limit=${limit}&offset=${offset}`),
+
+  // Obtener packs disponibles
+  getPacks: () => api.get('/sparks/packs'),
+
+  // Obtener precios de acciones
+  getPrices: () => api.get('/sparks/prices'),
+
+  // Comprar pack de chispas
+  purchasePack: (packId: string) =>
+    api.post('/sparks/purchase', { packId }),
+
+  // Gastar chispas en una accion
+  spend: (action: string, targetId?: string) =>
+    api.post('/sparks/spend', { action, targetId }),
+
+  // Verificar si puede pagar una accion
+  canAfford: (action: string) =>
+    api.get(`/sparks/can-afford?action=${action}`),
+
+  // Obtener tipos de regalos disponibles
+  getGiftTypes: () => api.get('/sparks/gifts'),
+
+  // Enviar regalo
+  sendGift: (connectionId: string, giftTypeId: string, message?: string) =>
+    api.post('/sparks/gifts/send', { connectionId, giftTypeId, message }),
 };

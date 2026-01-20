@@ -10,6 +10,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import { router } from 'expo-router';
 import { Button } from '../../src/components';
 import { useAuthStore } from '../../src/store/auth.store';
 import { colors, fontSize, fontWeight, spacing, borderRadius, shadows } from '../../src/utils/theme';
@@ -41,6 +42,34 @@ export default function ProfileScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView contentContainerStyle={styles.content}>
+        {/* Sparks Balance Card */}
+        <TouchableOpacity
+          style={styles.sparksCard}
+          onPress={() => router.push('/sparks' as any)}
+          activeOpacity={0.8}
+        >
+          <LinearGradient
+            colors={['#FFD700', '#FFA500', '#FF8C00']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+            style={styles.sparksGradient}
+          >
+            <View style={styles.sparksLeft}>
+              <View style={styles.sparksIconContainer}>
+                <Ionicons name="flash" size={24} color="#1a1a2e" />
+              </View>
+              <View>
+                <Text style={styles.sparksLabel}>Mis Chispas</Text>
+                <Text style={styles.sparksValue}>{user.sparks ?? 0}</Text>
+              </View>
+            </View>
+            <View style={styles.sparksBuyButton}>
+              <Text style={styles.sparksBuyText}>Comprar</Text>
+              <Ionicons name="chevron-forward" size={16} color="#1a1a2e" />
+            </View>
+          </LinearGradient>
+        </TouchableOpacity>
+
         {/* Header with photo */}
         <View style={styles.header}>
           <LinearGradient
@@ -60,19 +89,26 @@ export default function ProfileScreen() {
                 <Text style={styles.location}>{user.location}</Text>
               </View>
             )}
+            <TouchableOpacity
+              style={styles.editProfileButton}
+              onPress={() => router.push('/settings/preferences' as any)}
+            >
+              <Ionicons name="pencil" size={14} color={colors.text} />
+              <Text style={styles.editProfileText}>Editar perfil</Text>
+            </TouchableOpacity>
           </LinearGradient>
         </View>
 
         {/* Bio section */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Sobre mí</Text>
-            <TouchableOpacity>
+            <Text style={styles.sectionTitle}>Sobre mi</Text>
+            <TouchableOpacity onPress={() => router.push('/settings/preferences' as any)}>
               <Ionicons name="pencil" size={18} color={colors.primary} />
             </TouchableOpacity>
           </View>
           <Text style={styles.bio}>
-            {user.bio || 'Aún no has escrito tu bio. ¡Cuéntale al mundo sobre ti!'}
+            {user.bio || 'Aun no has escrito tu bio. Cuentale al mundo sobre ti!'}
           </Text>
         </View>
 
@@ -80,7 +116,7 @@ export default function ProfileScreen() {
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>Mis fotos</Text>
-            <TouchableOpacity>
+            <TouchableOpacity onPress={() => router.push('/settings/preferences' as any)}>
               <Ionicons name="add-circle" size={22} color={colors.primary} />
             </TouchableOpacity>
           </View>
@@ -89,7 +125,10 @@ export default function ProfileScreen() {
               <Image key={index} source={{ uri: photo }} style={styles.photo} />
             ))}
             {user.photos.length < 6 && (
-              <TouchableOpacity style={styles.addPhotoButton}>
+              <TouchableOpacity
+                style={styles.addPhotoButton}
+                onPress={() => router.push('/settings/preferences' as any)}
+              >
                 <Ionicons name="add" size={32} color={colors.textMuted} />
               </TouchableOpacity>
             )}
@@ -98,17 +137,23 @@ export default function ProfileScreen() {
 
         {/* Settings section */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Configuración</Text>
+          <Text style={styles.sectionTitle}>Configuracion</Text>
 
-          <TouchableOpacity style={styles.settingItem}>
+          <TouchableOpacity
+            style={styles.settingItem}
+            onPress={() => router.push('/settings/preferences' as any)}
+          >
             <View style={styles.settingIcon}>
-              <Ionicons name="settings" size={20} color={colors.primary} />
+              <Ionicons name="options" size={20} color={colors.primary} />
             </View>
             <Text style={styles.settingText}>Preferencias</Text>
             <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.settingItem}>
+          <TouchableOpacity
+            style={styles.settingItem}
+            onPress={() => router.push('/settings/notifications' as any)}
+          >
             <View style={styles.settingIcon}>
               <Ionicons name="notifications" size={20} color={colors.secondary} />
             </View>
@@ -116,7 +161,10 @@ export default function ProfileScreen() {
             <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.settingItem}>
+          <TouchableOpacity
+            style={styles.settingItem}
+            onPress={() => router.push('/settings/privacy' as any)}
+          >
             <View style={styles.settingIcon}>
               <Ionicons name="shield-checkmark" size={20} color={colors.accent} />
             </View>
@@ -124,11 +172,14 @@ export default function ProfileScreen() {
             <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.settingItem}>
+          <TouchableOpacity
+            style={styles.settingItem}
+            onPress={() => router.push('/settings/help' as any)}
+          >
             <View style={styles.settingIcon}>
               <Ionicons name="help-circle" size={20} color={colors.warning} />
             </View>
-            <Text style={styles.settingText}>Ayuda</Text>
+            <Text style={styles.settingText}>Ayuda y soporte</Text>
             <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />
           </TouchableOpacity>
         </View>
@@ -136,7 +187,7 @@ export default function ProfileScreen() {
         {/* Logout */}
         <View style={styles.logoutSection}>
           <Button
-            title="Cerrar sesión"
+            title="Cerrar sesion"
             onPress={handleLogout}
             variant="outline"
             fullWidth
@@ -157,6 +208,57 @@ const styles = StyleSheet.create({
   },
   content: {
     paddingBottom: spacing.xxl,
+  },
+  sparksCard: {
+    marginHorizontal: spacing.lg,
+    marginTop: spacing.md,
+    marginBottom: spacing.md,
+    borderRadius: borderRadius.lg,
+    overflow: 'hidden',
+    ...shadows.md,
+  },
+  sparksGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.lg,
+  },
+  sparksLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+  },
+  sparksIconContainer: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(26, 26, 46, 0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  sparksLabel: {
+    color: 'rgba(26, 26, 46, 0.7)',
+    fontSize: fontSize.xs,
+  },
+  sparksValue: {
+    color: '#1a1a2e',
+    fontSize: fontSize.xxl,
+    fontWeight: fontWeight.bold,
+  },
+  sparksBuyButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(26, 26, 46, 0.2)',
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderRadius: borderRadius.md,
+    gap: spacing.xs,
+  },
+  sparksBuyText: {
+    color: '#1a1a2e',
+    fontSize: fontSize.sm,
+    fontWeight: fontWeight.semibold,
   },
   header: {
     marginBottom: spacing.lg,
@@ -204,6 +306,21 @@ const styles = StyleSheet.create({
   location: {
     color: 'rgba(255,255,255,0.8)',
     fontSize: fontSize.sm,
+  },
+  editProfileButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    marginTop: spacing.md,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderRadius: borderRadius.full,
+  },
+  editProfileText: {
+    color: colors.text,
+    fontSize: fontSize.sm,
+    fontWeight: fontWeight.medium,
   },
   section: {
     paddingHorizontal: spacing.lg,
