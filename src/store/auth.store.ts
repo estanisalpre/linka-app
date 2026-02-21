@@ -1,7 +1,8 @@
-import { create } from 'zustand';
-import { storage } from '../utils/storage';
-import { authApi } from '../services/api';
-import { initSocket, disconnectSocket } from '../services/socket';
+import { create } from "zustand";
+import { storage } from "../utils/storage";
+import { authApi } from "../services/api";
+import { initSocket, disconnectSocket } from "../services/socket";
+import { NotificationService } from "../services/notifications";
 
 interface User {
   id: string;
@@ -55,13 +56,16 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       const response = await authApi.login(email, password);
       const { user, token } = response.data;
 
-      await storage.setItem('auth_token', token);
+      await storage.setItem("auth_token", token);
       await initSocket();
+
+      // Initialize push notifications
+      await NotificationService.initialize();
 
       set({ user, isAuthenticated: true, isLoading: false });
       return true;
     } catch (error: any) {
-      const message = error.response?.data?.error || 'Error al iniciar sesión';
+      const message = error.response?.data?.error || "Error al iniciar sesión";
       set({ error: message, isLoading: false });
       return false;
     }
@@ -73,20 +77,27 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       const response = await authApi.register(data);
       const { user, token } = response.data;
 
-      await storage.setItem('auth_token', token);
+      await storage.setItem("auth_token", token);
       await initSocket();
+
+      // Initialize push notifications
+      await NotificationService.initialize();
 
       set({ user, isAuthenticated: true, isLoading: false });
       return true;
     } catch (error: any) {
-      const message = error.response?.data?.error || 'Error al registrarse';
+      const message = error.response?.data?.error || "Error al registrarse";
       set({ error: message, isLoading: false });
       return false;
     }
   },
 
   logout: async () => {
-    await storage.deleteItem('auth_token');
+    // Unregister push token
+    await NotificationService.unregisterToken();
+    NotificationService.cleanup();
+
+    await storage.deleteItem("auth_token");
     disconnectSocket();
     set({ user: null, isAuthenticated: false });
   },
@@ -94,7 +105,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   loadUser: async () => {
     set({ isLoading: true });
     try {
-      const token = await storage.getItem('auth_token');
+      const token = await storage.getItem("auth_token");
 
       if (!token) {
         set({ isLoading: false, isAuthenticated: false });
@@ -104,13 +115,16 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       const response = await authApi.getMe();
       await initSocket();
 
+      // Initialize push notifications
+      await NotificationService.initialize();
+
       set({
         user: response.data,
         isAuthenticated: true,
         isLoading: false,
       });
     } catch (error) {
-      await storage.deleteItem('auth_token');
+      await storage.deleteItem("auth_token");
       set({ isLoading: false, isAuthenticated: false });
     }
   },
