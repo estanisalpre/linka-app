@@ -12,7 +12,7 @@ import { useLocalSearchParams, useRouter, Stack } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
-import { ProgressRing } from "../../../src/components";
+import { ProgressRing, GlobalHeader } from "../../../src/components";
 import { useNucleusStore } from "../../../src/store/nucleus.store";
 import {
   colors,
@@ -122,13 +122,24 @@ export default function NucleusScreen() {
     <SafeAreaView style={styles.container} edges={["bottom"]}>
       <Stack.Screen
         options={{
-          headerShown: true,
-          headerTitle: `Núcleo con ${otherUser.name}`,
-          headerStyle: { backgroundColor: colors.background },
-          headerTintColor: colors.text,
-          headerBackVisible: true,
+          headerShown: false,
         }}
       />
+
+      {/* Global Header with notifications & settings */}
+      <GlobalHeader notificationCount={0} />
+
+      {/* Custom Header with back button */}
+      <View style={styles.customHeader}>
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={() => router.back()}
+        >
+          <Ionicons name="arrow-back" size={24} color={colors.text} />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>Núcleo con {otherUser.name}</Text>
+        <View style={{ width: 24 }} />
+      </View>
 
       <ScrollView
         style={styles.scrollView}
@@ -152,7 +163,7 @@ export default function NucleusScreen() {
               </Text>
               <Text style={styles.progressSubtitle}>
                 {connection.progress < 70
-                  ? `${70 - connection.progress}% para chat limitado`
+                  ? `${70 - connection.progress}% para chatear`
                   : connection.progress < 100
                     ? `${100 - connection.progress}% para chat ilimitado`
                     : "¡Chat desbloqueado!"}
@@ -191,7 +202,7 @@ export default function NucleusScreen() {
               {connection.chatLevel === "UNLIMITED"
                 ? "Chat ilimitado"
                 : connection.chatLevel === "LIMITED"
-                  ? "Chat limitado"
+                  ? "Chat"
                   : "Chat bloqueado"}
             </Text>
           </View>
@@ -584,6 +595,26 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,
+  },
+  customHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    backgroundColor: colors.backgroundCard,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
+  backButton: {
+    padding: spacing.xs,
+  },
+  headerTitle: {
+    flex: 1,
+    color: colors.text,
+    fontSize: fontSize.lg,
+    fontWeight: fontWeight.semibold,
+    textAlign: "center",
   },
   scrollView: {
     flex: 1,

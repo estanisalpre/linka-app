@@ -1,4 +1,4 @@
-import React from 'react';
+import React from "react";
 import {
   View,
   Text,
@@ -6,21 +6,30 @@ import {
   Image,
   ScrollView,
   TouchableOpacity,
-} from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
-import { router } from 'expo-router';
-import { Button } from '../../src/components';
-import { useAuthStore } from '../../src/store/auth.store';
-import { colors, fontSize, fontWeight, spacing, borderRadius, shadows } from '../../src/utils/theme';
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { Ionicons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
+import { router } from "expo-router";
+import { GlobalHeader } from "../../src/components";
+import { useAuthStore } from "../../src/store/auth.store";
+import {
+  colors,
+  fontSize,
+  fontWeight,
+  spacing,
+  borderRadius,
+  shadows,
+} from "../../src/utils/theme";
 
 export default function ProfileScreen() {
-  const { user, logout } = useAuthStore();
+  const { user } = useAuthStore();
 
   if (!user) return null;
 
-  const mainPhoto = user.photos[0] || `https://ui-avatars.com/api/?background=252540&color=fff&size=200&name=${encodeURIComponent(user.name || 'U')}`;
+  const mainPhoto =
+    user.photos[0] ||
+    `https://ui-avatars.com/api/?background=252540&color=fff&size=200&name=${encodeURIComponent(user.name || "U")}`;
 
   const calculateAge = (birthDate: string) => {
     const birth = new Date(birthDate);
@@ -35,21 +44,18 @@ export default function ProfileScreen() {
 
   const age = calculateAge(user.birthDate);
 
-  const handleLogout = () => {
-    logout();
-  };
-
   return (
     <SafeAreaView style={styles.container}>
+      <GlobalHeader notificationCount={0} />
       <ScrollView contentContainerStyle={styles.content}>
         {/* Sparks Balance Card */}
         <TouchableOpacity
           style={styles.sparksCard}
-          onPress={() => router.push('/sparks' as any)}
+          onPress={() => router.push("/sparks" as any)}
           activeOpacity={0.8}
         >
           <LinearGradient
-            colors={['#FFD700', '#FFA500', '#FF8C00']}
+            colors={["#FFD700", "#FFA500", "#FF8C00"]}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 0 }}
             style={styles.sparksGradient}
@@ -82,16 +88,22 @@ export default function ProfileScreen() {
                 <Ionicons name="camera" size={16} color={colors.text} />
               </TouchableOpacity>
             </View>
-            <Text style={styles.name}>{user.name}, {age}</Text>
+            <Text style={styles.name}>
+              {user.name}, {age}
+            </Text>
             {user.location && (
               <View style={styles.locationRow}>
-                <Ionicons name="location" size={14} color="rgba(255,255,255,0.8)" />
+                <Ionicons
+                  name="location"
+                  size={14}
+                  color="rgba(255,255,255,0.8)"
+                />
                 <Text style={styles.location}>{user.location}</Text>
               </View>
             )}
             <TouchableOpacity
               style={styles.editProfileButton}
-              onPress={() => router.push('/settings/preferences' as any)}
+              onPress={() => router.push("/settings/preferences" as any)}
             >
               <Ionicons name="pencil" size={14} color={colors.text} />
               <Text style={styles.editProfileText}>Editar perfil</Text>
@@ -103,12 +115,15 @@ export default function ProfileScreen() {
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>Sobre mi</Text>
-            <TouchableOpacity onPress={() => router.push('/settings/preferences' as any)}>
+            <TouchableOpacity
+              onPress={() => router.push("/settings/preferences" as any)}
+            >
               <Ionicons name="pencil" size={18} color={colors.primary} />
             </TouchableOpacity>
           </View>
           <Text style={styles.bio}>
-            {user.bio || 'Aun no has escrito tu bio. Cuentale al mundo sobre ti!'}
+            {user.bio ||
+              "Aun no has escrito tu bio. Cuentale al mundo sobre ti!"}
           </Text>
         </View>
 
@@ -116,7 +131,9 @@ export default function ProfileScreen() {
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>Mis fotos</Text>
-            <TouchableOpacity onPress={() => router.push('/settings/preferences' as any)}>
+            <TouchableOpacity
+              onPress={() => router.push("/settings/preferences" as any)}
+            >
               <Ionicons name="add-circle" size={22} color={colors.primary} />
             </TouchableOpacity>
           </View>
@@ -127,7 +144,7 @@ export default function ProfileScreen() {
             {user.photos.length < 6 && (
               <TouchableOpacity
                 style={styles.addPhotoButton}
-                onPress={() => router.push('/settings/preferences' as any)}
+                onPress={() => router.push("/settings/preferences" as any)}
               >
                 <Ionicons name="add" size={32} color={colors.textMuted} />
               </TouchableOpacity>
@@ -135,63 +152,43 @@ export default function ProfileScreen() {
           </View>
         </View>
 
-        {/* Settings section */}
+        {/* Legal & Support section */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Configuracion</Text>
+          <Text style={styles.sectionTitle}>Legal y soporte</Text>
 
           <TouchableOpacity
             style={styles.settingItem}
-            onPress={() => router.push('/settings/preferences' as any)}
+            onPress={() => router.push("/settings/privacy" as any)}
           >
             <View style={styles.settingIcon}>
-              <Ionicons name="options" size={20} color={colors.primary} />
-            </View>
-            <Text style={styles.settingText}>Preferencias</Text>
-            <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.settingItem}
-            onPress={() => router.push('/settings/notifications' as any)}
-          >
-            <View style={styles.settingIcon}>
-              <Ionicons name="notifications" size={20} color={colors.secondary} />
-            </View>
-            <Text style={styles.settingText}>Notificaciones</Text>
-            <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.settingItem}
-            onPress={() => router.push('/settings/privacy' as any)}
-          >
-            <View style={styles.settingIcon}>
-              <Ionicons name="shield-checkmark" size={20} color={colors.accent} />
+              <Ionicons
+                name="shield-checkmark"
+                size={20}
+                color={colors.accent}
+              />
             </View>
             <Text style={styles.settingText}>Privacidad</Text>
-            <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />
+            <Ionicons
+              name="chevron-forward"
+              size={20}
+              color={colors.textMuted}
+            />
           </TouchableOpacity>
 
           <TouchableOpacity
             style={styles.settingItem}
-            onPress={() => router.push('/settings/help' as any)}
+            onPress={() => router.push("/settings/help" as any)}
           >
             <View style={styles.settingIcon}>
               <Ionicons name="help-circle" size={20} color={colors.warning} />
             </View>
             <Text style={styles.settingText}>Ayuda y soporte</Text>
-            <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />
+            <Ionicons
+              name="chevron-forward"
+              size={20}
+              color={colors.textMuted}
+            />
           </TouchableOpacity>
-        </View>
-
-        {/* Logout */}
-        <View style={styles.logoutSection}>
-          <Button
-            title="Cerrar sesion"
-            onPress={handleLogout}
-            variant="outline"
-            fullWidth
-          />
         </View>
 
         {/* Version */}
@@ -214,49 +211,49 @@ const styles = StyleSheet.create({
     marginTop: spacing.md,
     marginBottom: spacing.md,
     borderRadius: borderRadius.lg,
-    overflow: 'hidden',
+    overflow: "hidden",
     ...shadows.md,
   },
   sparksGradient: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     paddingVertical: spacing.md,
     paddingHorizontal: spacing.lg,
   },
   sparksLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: spacing.md,
   },
   sparksIconContainer: {
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: 'rgba(26, 26, 46, 0.2)',
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: "rgba(26, 26, 46, 0.2)",
+    justifyContent: "center",
+    alignItems: "center",
   },
   sparksLabel: {
-    color: 'rgba(26, 26, 46, 0.7)',
+    color: "rgba(26, 26, 46, 0.7)",
     fontSize: fontSize.xs,
   },
   sparksValue: {
-    color: '#1a1a2e',
+    color: "#1a1a2e",
     fontSize: fontSize.xxl,
     fontWeight: fontWeight.bold,
   },
   sparksBuyButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(26, 26, 46, 0.2)',
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "rgba(26, 26, 46, 0.2)",
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
     borderRadius: borderRadius.md,
     gap: spacing.xs,
   },
   sparksBuyText: {
-    color: '#1a1a2e',
+    color: "#1a1a2e",
     fontSize: fontSize.sm,
     fontWeight: fontWeight.semibold,
   },
@@ -264,12 +261,12 @@ const styles = StyleSheet.create({
     marginBottom: spacing.lg,
   },
   headerGradient: {
-    alignItems: 'center',
+    alignItems: "center",
     paddingVertical: spacing.xl,
     paddingTop: spacing.md,
   },
   avatarContainer: {
-    position: 'relative',
+    position: "relative",
     marginBottom: spacing.md,
   },
   avatar: {
@@ -280,15 +277,15 @@ const styles = StyleSheet.create({
     borderColor: colors.text,
   },
   editAvatarButton: {
-    position: 'absolute',
+    position: "absolute",
     bottom: 0,
     right: 0,
     width: 36,
     height: 36,
     borderRadius: 18,
     backgroundColor: colors.secondary,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     borderWidth: 3,
     borderColor: colors.text,
   },
@@ -298,21 +295,21 @@ const styles = StyleSheet.create({
     fontWeight: fontWeight.bold,
   },
   locationRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: spacing.xs,
     marginTop: spacing.xs,
   },
   location: {
-    color: 'rgba(255,255,255,0.8)',
+    color: "rgba(255,255,255,0.8)",
     fontSize: fontSize.sm,
   },
   editProfileButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: spacing.xs,
     marginTop: spacing.md,
-    backgroundColor: 'rgba(255,255,255,0.2)',
+    backgroundColor: "rgba(255,255,255,0.2)",
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
     borderRadius: borderRadius.full,
@@ -327,9 +324,9 @@ const styles = StyleSheet.create({
     marginBottom: spacing.lg,
   },
   sectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     marginBottom: spacing.md,
   },
   sectionTitle: {
@@ -343,29 +340,29 @@ const styles = StyleSheet.create({
     lineHeight: 24,
   },
   photosGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
+    flexDirection: "row",
+    flexWrap: "wrap",
     gap: spacing.sm,
   },
   photo: {
-    width: '31%',
+    width: "31%",
     aspectRatio: 1,
     borderRadius: borderRadius.md,
   },
   addPhotoButton: {
-    width: '31%',
+    width: "31%",
     aspectRatio: 1,
     borderRadius: borderRadius.md,
     backgroundColor: colors.backgroundCard,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     borderWidth: 2,
     borderColor: colors.border,
-    borderStyle: 'dashed',
+    borderStyle: "dashed",
   },
   settingItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     backgroundColor: colors.backgroundCard,
     borderRadius: borderRadius.md,
     padding: spacing.md,
@@ -377,8 +374,8 @@ const styles = StyleSheet.create({
     height: 36,
     borderRadius: 18,
     backgroundColor: colors.backgroundLight,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     marginRight: spacing.md,
   },
   settingText: {
@@ -393,7 +390,7 @@ const styles = StyleSheet.create({
   version: {
     color: colors.textMuted,
     fontSize: fontSize.xs,
-    textAlign: 'center',
+    textAlign: "center",
     marginTop: spacing.lg,
   },
 });

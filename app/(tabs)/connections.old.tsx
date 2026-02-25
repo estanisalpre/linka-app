@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -8,27 +8,52 @@ import {
   ActivityIndicator,
   TouchableOpacity,
   Image,
-} from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { router } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
-import { useConnectionStore } from '../../src/store/connection.store';
-import { colors, fontSize, fontWeight, spacing, borderRadius } from '../../src/utils/theme';
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { router } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
+import { GlobalHeader } from "../../src/components";
+import { useConnectionStore } from "../../src/store/connection.store";
+import {
+  colors,
+  fontSize,
+  fontWeight,
+  spacing,
+  borderRadius,
+} from "../../src/utils/theme";
 
-type FilterTab = 'all' | 'similar' | 'later';
+type FilterTab = "all" | "similar" | "later";
 
 // Chat unlock levels based on progress
-const getChatLevel = (progress: number): { level: string; description: string; color: string } => {
+const getChatLevel = (
+  progress: number,
+): { level: string; description: string; color: string } => {
   if (progress >= 70) {
-    return { level: 'Chat completo', description: 'Pueden hablar de todo', color: colors.success };
+    return {
+      level: "Chat completo",
+      description: "Pueden hablar de todo",
+      color: colors.success,
+    };
   }
   if (progress >= 50) {
-    return { level: 'Voz y video', description: 'Pueden hacer llamadas', color: '#9C27B0' };
+    return {
+      level: "Voz y video",
+      description: "Pueden hacer llamadas",
+      color: "#9C27B0",
+    };
   }
   if (progress >= 30) {
-    return { level: 'Chat guiado', description: 'Preguntas sugeridas', color: '#2196F3' };
+    return {
+      level: "Chat guiado",
+      description: "Preguntas sugeridas",
+      color: "#2196F3",
+    };
   }
-  return { level: 'Bloqueado', description: 'Completen misiones', color: colors.textMuted };
+  return {
+    level: "Bloqueado",
+    description: "Completen misiones",
+    color: colors.textMuted,
+  };
 };
 
 // Get whose turn it is
@@ -36,17 +61,19 @@ const getTurnInfo = (_connection: any): { text: string; isMyTurn: boolean } => {
   // In production, this would come from the backend based on mission responses
   const isMyTurn = Math.random() > 0.5; // Mock for now
   return {
-    text: isMyTurn ? 'Tu turno' : 'Esperando respuesta',
+    text: isMyTurn ? "Tu turno" : "Esperando respuesta",
     isMyTurn,
   };
 };
 
 // Get compatibility label
-const getCompatibilityLabel = (score: number): { text: string; color: string } => {
-  if (score >= 80) return { text: 'Muy compatible', color: colors.success };
-  if (score >= 60) return { text: 'Compatible', color: colors.primary };
-  if (score >= 40) return { text: 'Algo en comun', color: colors.warning };
-  return { text: 'Diferente', color: colors.textMuted };
+const getCompatibilityLabel = (
+  score: number,
+): { text: string; color: string } => {
+  if (score >= 80) return { text: "Muy compatible", color: colors.success };
+  if (score >= 60) return { text: "Compatible", color: colors.primary };
+  if (score >= 40) return { text: "Algo en comun", color: colors.warning };
+  return { text: "Diferente", color: colors.textMuted };
 };
 
 interface NucleoCardProps {
@@ -55,25 +82,40 @@ interface NucleoCardProps {
   showCompatibility?: boolean;
 }
 
-const NucleoCard: React.FC<NucleoCardProps> = ({ connection, onPress, showCompatibility }) => {
+const NucleoCard: React.FC<NucleoCardProps> = ({
+  connection,
+  onPress,
+  showCompatibility,
+}) => {
   const { otherUser, progress, temperature, compatibilityScore } = connection;
-  const photo = otherUser?.photos?.[0] || 'https://ui-avatars.com/api/?background=252540&color=fff&name=U';
+  const photo =
+    otherUser?.photos?.[0] ||
+    "https://ui-avatars.com/api/?background=252540&color=fff&name=U";
   const chatLevel = getChatLevel(progress);
   const turnInfo = getTurnInfo(connection);
   const compatibility = getCompatibilityLabel(compatibilityScore || 0);
 
   const getTemperatureEmoji = () => {
     switch (temperature) {
-      case 'HOT': return '🔥';
-      case 'WARM': return '☀️';
-      case 'COOL': return '🌤️';
-      case 'COLD': return '❄️';
-      default: return '✨';
+      case "HOT":
+        return "🔥";
+      case "WARM":
+        return "☀️";
+      case "COOL":
+        return "🌤️";
+      case "COLD":
+        return "❄️";
+      default:
+        return "✨";
     }
   };
 
   return (
-    <TouchableOpacity style={styles.nucleoCard} onPress={onPress} activeOpacity={0.8}>
+    <TouchableOpacity
+      style={styles.nucleoCard}
+      onPress={onPress}
+      activeOpacity={0.8}
+    >
       {/* Progress bar at top */}
       <View style={styles.progressBarContainer}>
         <View style={[styles.progressBar, { width: `${progress}%` }]} />
@@ -89,15 +131,25 @@ const NucleoCard: React.FC<NucleoCardProps> = ({ connection, onPress, showCompat
 
         {/* Info */}
         <View style={styles.nucleoInfo}>
-          <Text style={styles.nucleoName}>{otherUser?.name || 'Usuario'}</Text>
+          <Text style={styles.nucleoName}>{otherUser?.name || "Usuario"}</Text>
 
           {/* Compatibility score if requested */}
           {showCompatibility && compatibilityScore > 0 && (
             <View style={styles.compatibilityContainer}>
-              <Text style={[styles.compatibilityScore, { color: compatibility.color }]}>
+              <Text
+                style={[
+                  styles.compatibilityScore,
+                  { color: compatibility.color },
+                ]}
+              >
                 {compatibilityScore}%
               </Text>
-              <Text style={[styles.compatibilityLabel, { color: compatibility.color }]}>
+              <Text
+                style={[
+                  styles.compatibilityLabel,
+                  { color: compatibility.color },
+                ]}
+              >
                 {compatibility.text}
               </Text>
             </View>
@@ -105,26 +157,39 @@ const NucleoCard: React.FC<NucleoCardProps> = ({ connection, onPress, showCompat
 
           {/* Chat level indicator */}
           <View style={styles.chatLevelContainer}>
-            <View style={[styles.chatLevelDot, { backgroundColor: chatLevel.color }]} />
+            <View
+              style={[
+                styles.chatLevelDot,
+                { backgroundColor: chatLevel.color },
+              ]}
+            />
             <Text style={[styles.chatLevelText, { color: chatLevel.color }]}>
               {chatLevel.level}
             </Text>
           </View>
 
           {/* Turn indicator */}
-          <View style={[
-            styles.turnIndicator,
-            turnInfo.isMyTurn ? styles.turnIndicatorActive : styles.turnIndicatorWaiting
-          ]}>
+          <View
+            style={[
+              styles.turnIndicator,
+              turnInfo.isMyTurn
+                ? styles.turnIndicatorActive
+                : styles.turnIndicatorWaiting,
+            ]}
+          >
             <Ionicons
-              name={turnInfo.isMyTurn ? 'arrow-forward-circle' : 'time-outline'}
+              name={turnInfo.isMyTurn ? "arrow-forward-circle" : "time-outline"}
               size={14}
               color={turnInfo.isMyTurn ? colors.primary : colors.textMuted}
             />
-            <Text style={[
-              styles.turnText,
-              turnInfo.isMyTurn ? styles.turnTextActive : styles.turnTextWaiting
-            ]}>
+            <Text
+              style={[
+                styles.turnText,
+                turnInfo.isMyTurn
+                  ? styles.turnTextActive
+                  : styles.turnTextWaiting,
+              ]}
+            >
               {turnInfo.text}
             </Text>
           </View>
@@ -154,20 +219,32 @@ interface PendingCardProps {
   onDecline: () => void;
 }
 
-const PendingCard: React.FC<PendingCardProps> = ({ connection, onAccept, onPostpone, onDecline }) => {
+const PendingCard: React.FC<PendingCardProps> = ({
+  connection,
+  onAccept,
+  onPostpone,
+  onDecline,
+}) => {
   const { otherUser, compatibilityScore, seenByReceiver } = connection;
-  const photo = otherUser?.photos?.[0] || 'https://ui-avatars.com/api/?background=252540&color=fff&name=U';
+  const photo =
+    otherUser?.photos?.[0] ||
+    "https://ui-avatars.com/api/?background=252540&color=fff&name=U";
   const compatibility = getCompatibilityLabel(compatibilityScore || 0);
 
   return (
     <View style={styles.pendingCard}>
       <Image source={{ uri: photo }} style={styles.pendingPhoto} />
       <View style={styles.pendingInfo}>
-        <Text style={styles.pendingName}>{otherUser?.name || 'Usuario'}</Text>
+        <Text style={styles.pendingName}>{otherUser?.name || "Usuario"}</Text>
         <Text style={styles.pendingText}>Quiere crear un nucleo contigo</Text>
         {compatibilityScore > 0 && (
           <View style={styles.pendingCompatibility}>
-            <Text style={[styles.pendingCompatibilityText, { color: compatibility.color }]}>
+            <Text
+              style={[
+                styles.pendingCompatibilityText,
+                { color: compatibility.color },
+              ]}
+            >
               {compatibilityScore}% {compatibility.text}
             </Text>
           </View>
@@ -195,27 +272,32 @@ interface LaterCardProps {
   onDecline?: () => void;
 }
 
-const LaterCard: React.FC<LaterCardProps> = ({ connection, isInitiator, onAccept, onDecline }) => {
+const LaterCard: React.FC<LaterCardProps> = ({
+  connection,
+  isInitiator,
+  onAccept,
+  onDecline,
+}) => {
   const { otherUser, compatibilityScore } = connection;
-  const photo = otherUser?.photos?.[0] || 'https://ui-avatars.com/api/?background=252540&color=fff&name=U';
+  const photo =
+    otherUser?.photos?.[0] ||
+    "https://ui-avatars.com/api/?background=252540&color=fff&name=U";
   const compatibility = getCompatibilityLabel(compatibilityScore || 0);
 
   return (
     <View style={styles.laterCard}>
       <Image source={{ uri: photo }} style={styles.laterPhoto} />
       <View style={styles.laterInfo}>
-        <Text style={styles.laterName}>{otherUser?.name || 'Usuario'}</Text>
+        <Text style={styles.laterName}>{otherUser?.name || "Usuario"}</Text>
         {isInitiator ? (
-          <Text style={styles.laterStatusText}>
-            Te puso en "otro momento"
-          </Text>
+          <Text style={styles.laterStatusText}>Te puso en "otro momento"</Text>
         ) : (
-          <Text style={styles.laterStatusText}>
-            Lo dejaste para despues
-          </Text>
+          <Text style={styles.laterStatusText}>Lo dejaste para despues</Text>
         )}
         {compatibilityScore > 0 && (
-          <Text style={[styles.laterCompatibility, { color: compatibility.color }]}>
+          <Text
+            style={[styles.laterCompatibility, { color: compatibility.color }]}
+          >
             {compatibilityScore}% compatible
           </Text>
         )}
@@ -240,7 +322,9 @@ interface WaitingCardProps {
 
 const WaitingCard: React.FC<WaitingCardProps> = ({ connection }) => {
   const { otherUser, seenByReceiver, compatibilityScore } = connection;
-  const photo = otherUser?.photos?.[0] || 'https://ui-avatars.com/api/?background=252540&color=fff&name=U';
+  const photo =
+    otherUser?.photos?.[0] ||
+    "https://ui-avatars.com/api/?background=252540&color=fff&name=U";
 
   return (
     <View style={styles.waitingCard}>
@@ -250,7 +334,11 @@ const WaitingCard: React.FC<WaitingCardProps> = ({ connection }) => {
         <View style={styles.waitingStatusRow}>
           {seenByReceiver ? (
             <>
-              <Ionicons name="checkmark-done" size={14} color={colors.primary} />
+              <Ionicons
+                name="checkmark-done"
+                size={14}
+                color={colors.primary}
+              />
               <Text style={styles.waitingSeenText}>Visto</Text>
             </>
           ) : (
@@ -261,7 +349,9 @@ const WaitingCard: React.FC<WaitingCardProps> = ({ connection }) => {
           )}
         </View>
         {compatibilityScore > 0 && (
-          <Text style={styles.waitingCompatibility}>{compatibilityScore}% compatible</Text>
+          <Text style={styles.waitingCompatibility}>
+            {compatibilityScore}% compatible
+          </Text>
         )}
       </View>
     </View>
@@ -275,13 +365,15 @@ interface RejectedCardProps {
 
 const RejectedCard: React.FC<RejectedCardProps> = ({ connection }) => {
   const { otherUser } = connection;
-  const photo = otherUser?.photos?.[0] || 'https://ui-avatars.com/api/?background=252540&color=fff&name=U';
+  const photo =
+    otherUser?.photos?.[0] ||
+    "https://ui-avatars.com/api/?background=252540&color=fff&name=U";
 
   return (
     <View style={styles.rejectedCard}>
       <Image source={{ uri: photo }} style={styles.rejectedPhoto} />
       <View style={styles.rejectedInfo}>
-        <Text style={styles.rejectedName}>{otherUser?.name || 'Usuario'}</Text>
+        <Text style={styles.rejectedName}>{otherUser?.name || "Usuario"}</Text>
         <Text style={styles.rejectedText}>No conectaron esta vez</Text>
       </View>
     </View>
@@ -300,17 +392,17 @@ export default function ConnectionsScreen() {
     isLoading,
   } = useConnectionStore();
   const [refreshing, setRefreshing] = useState(false);
-  const [activeTab, setActiveTab] = useState<FilterTab>('all');
+  const [activeTab, setActiveTab] = useState<FilterTab>("all");
   const [rejectedConnections, setRejectedConnections] = useState<any[]>([]);
   const [showRejected, setShowRejected] = useState(false);
 
   const loadRejectedConnections = async () => {
     try {
-      const { connectionApi } = await import('../../src/services/api');
-      const response = await connectionApi.getAll({ filter: 'rejected' });
+      const { connectionApi } = await import("../../src/services/api");
+      const response = await connectionApi.getAll({ filter: "rejected" });
       setRejectedConnections(response.data);
     } catch (error) {
-      console.error('Error loading rejected connections:', error);
+      console.error("Error loading rejected connections:", error);
     }
   };
 
@@ -332,10 +424,10 @@ export default function ConnectionsScreen() {
 
   const handleTabChange = async (tab: FilterTab) => {
     setActiveTab(tab);
-    if (tab === 'similar') {
-      await loadConnections({ sortBy: 'compatibility' });
-    } else if (tab === 'later') {
-      await loadConnections({ status: 'LATER' });
+    if (tab === "similar") {
+      await loadConnections({ sortBy: "compatibility" });
+    } else if (tab === "later") {
+      await loadConnections({ status: "LATER" });
     } else {
       await loadConnections();
     }
@@ -343,13 +435,15 @@ export default function ConnectionsScreen() {
 
   // Filter connections based on active tab
   const getFilteredConnections = () => {
-    if (activeTab === 'later') {
-      return connections.filter(c => c.status === 'LATER');
+    if (activeTab === "later") {
+      return connections.filter((c) => c.status === "LATER");
     }
-    if (activeTab === 'similar') {
+    if (activeTab === "similar") {
       return [...connections]
-        .filter(c => c.status === 'PENDING' && !c.isInitiator)
-        .sort((a, b) => (b.compatibilityScore || 0) - (a.compatibilityScore || 0));
+        .filter((c) => c.status === "PENDING" && !c.isInitiator)
+        .sort(
+          (a, b) => (b.compatibilityScore || 0) - (a.compatibilityScore || 0),
+        );
     }
     return connections;
   };
@@ -358,16 +452,16 @@ export default function ConnectionsScreen() {
 
   // Categorize connections
   const pendingConnections = filteredConnections.filter(
-    (c) => c.status === 'PENDING' && !c.isInitiator
+    (c) => c.status === "PENDING" && !c.isInitiator,
   );
   const activeConnections = filteredConnections.filter(
-    (c) => c.status === 'ACTIVE' || c.status === 'COMPLETED'
+    (c) => c.status === "ACTIVE" || c.status === "COMPLETED",
   );
   const waitingConnections = filteredConnections.filter(
-    (c) => c.status === 'PENDING' && c.isInitiator
+    (c) => c.status === "PENDING" && c.isInitiator,
   );
   const laterConnections = filteredConnections.filter(
-    (c) => c.status === 'LATER'
+    (c) => c.status === "LATER",
   );
 
   const handleConnectionPress = (connectionId: string) => {
@@ -391,7 +485,7 @@ export default function ConnectionsScreen() {
 
   if (isLoading && connections.length === 0) {
     return (
-      <SafeAreaView style={styles.container} edges={['top']}>
+      <SafeAreaView style={styles.container} edges={["top"]}>
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={colors.primary} />
           <Text style={styles.loadingText}>Cargando nucleos...</Text>
@@ -401,7 +495,8 @@ export default function ConnectionsScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
+    <SafeAreaView style={styles.container} edges={["top"]}>
+      <GlobalHeader notificationCount={0} />
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.content}
@@ -417,37 +512,47 @@ export default function ConnectionsScreen() {
         {/* Header */}
         <View style={styles.header}>
           <Text style={styles.title}>Nucleos</Text>
-          <Text style={styles.subtitle}>
-            Tus conexiones en progreso
-          </Text>
+          <Text style={styles.subtitle}>Tus conexiones en progreso</Text>
         </View>
 
         {/* Filter Tabs */}
         <View style={styles.tabsContainer}>
           <TouchableOpacity
-            style={[styles.tab, activeTab === 'all' && styles.tabActive]}
-            onPress={() => handleTabChange('all')}
+            style={[styles.tab, activeTab === "all" && styles.tabActive]}
+            onPress={() => handleTabChange("all")}
           >
             <Ionicons
               name="grid"
               size={16}
-              color={activeTab === 'all' ? colors.primary : colors.textMuted}
+              color={activeTab === "all" ? colors.primary : colors.textMuted}
             />
-            <Text style={[styles.tabText, activeTab === 'all' && styles.tabTextActive]}>
+            <Text
+              style={[
+                styles.tabText,
+                activeTab === "all" && styles.tabTextActive,
+              ]}
+            >
               Todos
             </Text>
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={[styles.tab, activeTab === 'similar' && styles.tabActive]}
-            onPress={() => handleTabChange('similar')}
+            style={[styles.tab, activeTab === "similar" && styles.tabActive]}
+            onPress={() => handleTabChange("similar")}
           >
             <Ionicons
               name="heart"
               size={16}
-              color={activeTab === 'similar' ? colors.secondary : colors.textMuted}
+              color={
+                activeTab === "similar" ? colors.secondary : colors.textMuted
+              }
             />
-            <Text style={[styles.tabText, activeTab === 'similar' && styles.tabTextActive]}>
+            <Text
+              style={[
+                styles.tabText,
+                activeTab === "similar" && styles.tabTextActive,
+              ]}
+            >
               Similares a mi
             </Text>
             {pendingCounts.pending > 0 && (
@@ -458,19 +563,26 @@ export default function ConnectionsScreen() {
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={[styles.tab, activeTab === 'later' && styles.tabActive]}
-            onPress={() => handleTabChange('later')}
+            style={[styles.tab, activeTab === "later" && styles.tabActive]}
+            onPress={() => handleTabChange("later")}
           >
             <Ionicons
               name="time"
               size={16}
-              color={activeTab === 'later' ? colors.warning : colors.textMuted}
+              color={activeTab === "later" ? colors.warning : colors.textMuted}
             />
-            <Text style={[styles.tabText, activeTab === 'later' && styles.tabTextActive]}>
+            <Text
+              style={[
+                styles.tabText,
+                activeTab === "later" && styles.tabTextActive,
+              ]}
+            >
               Otro momento
             </Text>
             {pendingCounts.later > 0 && (
-              <View style={[styles.tabBadge, { backgroundColor: colors.warning }]}>
+              <View
+                style={[styles.tabBadge, { backgroundColor: colors.warning }]}
+              >
                 <Text style={styles.tabBadgeText}>{pendingCounts.later}</Text>
               </View>
             )}
@@ -478,7 +590,7 @@ export default function ConnectionsScreen() {
         </View>
 
         {/* Content based on active tab */}
-        {activeTab === 'later' ? (
+        {activeTab === "later" ? (
           // Later tab content
           <View style={styles.section}>
             {laterConnections.length > 0 ? (
@@ -497,22 +609,36 @@ export default function ConnectionsScreen() {
                     key={connection.id}
                     connection={connection}
                     isInitiator={connection.isInitiator}
-                    onAccept={!connection.isInitiator ? () => handleAccept(connection.id) : undefined}
-                    onDecline={!connection.isInitiator ? () => handleDecline(connection.id) : undefined}
+                    onAccept={
+                      !connection.isInitiator
+                        ? () => handleAccept(connection.id)
+                        : undefined
+                    }
+                    onDecline={
+                      !connection.isInitiator
+                        ? () => handleDecline(connection.id)
+                        : undefined
+                    }
                   />
                 ))}
               </>
             ) : (
               <View style={styles.emptyTabContainer}>
-                <Ionicons name="time-outline" size={48} color={colors.textMuted} />
-                <Text style={styles.emptyTabTitle}>Sin conexiones pendientes</Text>
+                <Ionicons
+                  name="time-outline"
+                  size={48}
+                  color={colors.textMuted}
+                />
+                <Text style={styles.emptyTabTitle}>
+                  Sin conexiones pendientes
+                </Text>
                 <Text style={styles.emptyTabText}>
                   Aqui apareceran las conexiones que dejes para otro momento
                 </Text>
               </View>
             )}
           </View>
-        ) : activeTab === 'similar' ? (
+        ) : activeTab === "similar" ? (
           // Similar tab content - sorted by compatibility
           <View style={styles.section}>
             {pendingConnections.length > 0 ? (
@@ -538,10 +664,17 @@ export default function ConnectionsScreen() {
               </>
             ) : (
               <View style={styles.emptyTabContainer}>
-                <Ionicons name="heart-outline" size={48} color={colors.textMuted} />
-                <Text style={styles.emptyTabTitle}>Sin solicitudes pendientes</Text>
+                <Ionicons
+                  name="heart-outline"
+                  size={48}
+                  color={colors.textMuted}
+                />
+                <Text style={styles.emptyTabTitle}>
+                  Sin solicitudes pendientes
+                </Text>
                 <Text style={styles.emptyTabText}>
-                  Cuando recibas solicitudes, aqui apareceran ordenadas por compatibilidad
+                  Cuando recibas solicitudes, aqui apareceran ordenadas por
+                  compatibilidad
                 </Text>
               </View>
             )}
@@ -554,19 +687,33 @@ export default function ConnectionsScreen() {
               <Text style={styles.infoTitle}>Niveles de chat</Text>
               <View style={styles.levelsList}>
                 <View style={styles.levelItem}>
-                  <View style={[styles.levelDot, { backgroundColor: colors.textMuted }]} />
+                  <View
+                    style={[
+                      styles.levelDot,
+                      { backgroundColor: colors.textMuted },
+                    ]}
+                  />
                   <Text style={styles.levelText}>0-29%: Bloqueado</Text>
                 </View>
                 <View style={styles.levelItem}>
-                  <View style={[styles.levelDot, { backgroundColor: '#2196F3' }]} />
+                  <View
+                    style={[styles.levelDot, { backgroundColor: "#2196F3" }]}
+                  />
                   <Text style={styles.levelText}>30-49%: Guiado</Text>
                 </View>
                 <View style={styles.levelItem}>
-                  <View style={[styles.levelDot, { backgroundColor: '#9C27B0' }]} />
+                  <View
+                    style={[styles.levelDot, { backgroundColor: "#9C27B0" }]}
+                  />
                   <Text style={styles.levelText}>50-69%: Voz</Text>
                 </View>
                 <View style={styles.levelItem}>
-                  <View style={[styles.levelDot, { backgroundColor: colors.success }]} />
+                  <View
+                    style={[
+                      styles.levelDot,
+                      { backgroundColor: colors.success },
+                    ]}
+                  />
                   <Text style={styles.levelText}>70%+: Completo</Text>
                 </View>
               </View>
@@ -576,7 +723,11 @@ export default function ConnectionsScreen() {
             {pendingConnections.length > 0 && (
               <View style={styles.section}>
                 <View style={styles.sectionHeader}>
-                  <Ionicons name="notifications" size={20} color={colors.secondary} />
+                  <Ionicons
+                    name="notifications"
+                    size={20}
+                    color={colors.secondary}
+                  />
                   <Text style={styles.sectionTitle}>
                     Solicitudes ({pendingConnections.length})
                   </Text>
@@ -597,7 +748,11 @@ export default function ConnectionsScreen() {
             {activeConnections.length > 0 && (
               <View style={styles.section}>
                 <View style={styles.sectionHeader}>
-                  <Ionicons name="git-network" size={20} color={colors.primary} />
+                  <Ionicons
+                    name="git-network"
+                    size={20}
+                    color={colors.primary}
+                  />
                   <Text style={styles.sectionTitle}>
                     Activos ({activeConnections.length})
                   </Text>
@@ -636,13 +791,17 @@ export default function ConnectionsScreen() {
                   onPress={() => setShowRejected(!showRejected)}
                 >
                   <View style={styles.sectionHeader}>
-                    <Ionicons name="heart-dislike" size={20} color={colors.textMuted} />
+                    <Ionicons
+                      name="heart-dislike"
+                      size={20}
+                      color={colors.textMuted}
+                    />
                     <Text style={styles.sectionTitle}>
                       No conectaron ({rejectedConnections.length})
                     </Text>
                   </View>
                   <Ionicons
-                    name={showRejected ? 'chevron-up' : 'chevron-down'}
+                    name={showRejected ? "chevron-up" : "chevron-down"}
                     size={20}
                     color={colors.textMuted}
                   />
@@ -651,13 +810,20 @@ export default function ConnectionsScreen() {
                 {showRejected && (
                   <>
                     <View style={styles.encouragementBanner}>
-                      <Ionicons name="sparkles" size={20} color={colors.primary} />
+                      <Ionicons
+                        name="sparkles"
+                        size={20}
+                        color={colors.primary}
+                      />
                       <Text style={styles.encouragementText}>
                         No te desanimes, hay muchas personas esperando conocerte
                       </Text>
                     </View>
                     {rejectedConnections.map((connection) => (
-                      <RejectedCard key={connection.id} connection={connection} />
+                      <RejectedCard
+                        key={connection.id}
+                        connection={connection}
+                      />
                     ))}
                   </>
                 )}
@@ -667,14 +833,19 @@ export default function ConnectionsScreen() {
             {/* Empty state */}
             {connections.length === 0 && (
               <View style={styles.emptyContainer}>
-                <Ionicons name="git-network-outline" size={64} color={colors.textMuted} />
+                <Ionicons
+                  name="git-network-outline"
+                  size={64}
+                  color={colors.textMuted}
+                />
                 <Text style={styles.emptyTitle}>Sin nucleos aun</Text>
                 <Text style={styles.emptyText}>
-                  Entra a un portal y crea conexiones con personas que comparten tus intereses
+                  Entra a un portal y crea conexiones con personas que comparten
+                  tus intereses
                 </Text>
                 <TouchableOpacity
                   style={styles.emptyButton}
-                  onPress={() => router.push('/(tabs)')}
+                  onPress={() => router.push("/(tabs)")}
                 >
                   <Text style={styles.emptyButtonText}>Explorar portales</Text>
                 </TouchableOpacity>
@@ -694,8 +865,8 @@ const styles = StyleSheet.create({
   },
   loadingContainer: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     gap: spacing.md,
   },
   loadingText: {
@@ -725,7 +896,7 @@ const styles = StyleSheet.create({
   },
   // Tabs
   tabsContainer: {
-    flexDirection: 'row',
+    flexDirection: "row",
     backgroundColor: colors.backgroundCard,
     borderRadius: borderRadius.lg,
     padding: spacing.xs,
@@ -733,9 +904,9 @@ const styles = StyleSheet.create({
   },
   tab: {
     flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
     paddingVertical: spacing.sm,
     paddingHorizontal: spacing.xs,
     borderRadius: borderRadius.md,
@@ -757,12 +928,12 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     minWidth: 20,
     height: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     paddingHorizontal: 6,
   },
   tabBadgeText: {
-    color: '#FFF',
+    color: "#FFF",
     fontSize: fontSize.xs,
     fontWeight: fontWeight.bold,
   },
@@ -782,15 +953,15 @@ const styles = StyleSheet.create({
     marginBottom: spacing.sm,
   },
   levelsList: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
+    flexDirection: "row",
+    flexWrap: "wrap",
     gap: spacing.sm,
   },
   levelItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: spacing.xs,
-    width: '48%',
+    width: "48%",
   },
   levelDot: {
     width: 8,
@@ -806,8 +977,8 @@ const styles = StyleSheet.create({
     marginBottom: spacing.lg,
   },
   sectionHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: spacing.sm,
     marginBottom: spacing.sm,
   },
@@ -826,34 +997,34 @@ const styles = StyleSheet.create({
     backgroundColor: colors.backgroundCard,
     borderRadius: borderRadius.lg,
     marginBottom: spacing.md,
-    overflow: 'hidden',
+    overflow: "hidden",
     borderWidth: 1,
     borderColor: colors.border,
   },
   progressBarContainer: {
     height: 24,
     backgroundColor: colors.backgroundLight,
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
   },
   progressBar: {
-    height: '100%',
+    height: "100%",
     backgroundColor: colors.primary,
   },
   progressText: {
-    position: 'absolute',
+    position: "absolute",
     right: spacing.sm,
     color: colors.text,
     fontSize: fontSize.xs,
     fontWeight: fontWeight.semibold,
   },
   nucleoContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     padding: spacing.md,
   },
   photoContainer: {
-    position: 'relative',
+    position: "relative",
   },
   photo: {
     width: 56,
@@ -861,7 +1032,7 @@ const styles = StyleSheet.create({
     borderRadius: 28,
   },
   temperatureEmoji: {
-    position: 'absolute',
+    position: "absolute",
     bottom: -2,
     right: -2,
     fontSize: 16,
@@ -876,8 +1047,8 @@ const styles = StyleSheet.create({
     fontWeight: fontWeight.semibold,
   },
   compatibilityContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: spacing.xs,
     marginTop: 2,
   },
@@ -889,8 +1060,8 @@ const styles = StyleSheet.create({
     fontSize: fontSize.sm,
   },
   chatLevelContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: spacing.xs,
     marginTop: 2,
   },
@@ -903,17 +1074,17 @@ const styles = StyleSheet.create({
     fontSize: fontSize.sm,
   },
   turnIndicator: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: spacing.xs,
     marginTop: spacing.xs,
     paddingVertical: 2,
     paddingHorizontal: spacing.sm,
     borderRadius: borderRadius.sm,
-    alignSelf: 'flex-start',
+    alignSelf: "flex-start",
   },
   turnIndicatorActive: {
-    backgroundColor: colors.primary + '20',
+    backgroundColor: colors.primary + "20",
   },
   turnIndicatorWaiting: {
     backgroundColor: colors.backgroundLight,
@@ -929,8 +1100,8 @@ const styles = StyleSheet.create({
     color: colors.textMuted,
   },
   missionHint: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: spacing.xs,
     paddingHorizontal: spacing.md,
     paddingBottom: spacing.sm,
@@ -944,11 +1115,11 @@ const styles = StyleSheet.create({
     backgroundColor: colors.backgroundCard,
     borderRadius: borderRadius.lg,
     padding: spacing.md,
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     marginBottom: spacing.md,
     borderWidth: 1,
-    borderColor: colors.secondary + '40',
+    borderColor: colors.secondary + "40",
   },
   pendingPhoto: {
     width: 48,
@@ -976,7 +1147,7 @@ const styles = StyleSheet.create({
     fontWeight: fontWeight.medium,
   },
   pendingActions: {
-    flexDirection: 'row',
+    flexDirection: "row",
     gap: spacing.sm,
   },
   declineBtn: {
@@ -984,8 +1155,8 @@ const styles = StyleSheet.create({
     height: 36,
     borderRadius: 18,
     backgroundColor: colors.backgroundLight,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     borderWidth: 1,
     borderColor: colors.error,
   },
@@ -994,8 +1165,8 @@ const styles = StyleSheet.create({
     height: 36,
     borderRadius: 18,
     backgroundColor: colors.backgroundLight,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     borderWidth: 1,
     borderColor: colors.warning,
   },
@@ -1004,19 +1175,19 @@ const styles = StyleSheet.create({
     height: 36,
     borderRadius: 18,
     backgroundColor: colors.success,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
   },
   // Later Card styles
   laterCard: {
     backgroundColor: colors.backgroundCard,
     borderRadius: borderRadius.lg,
     padding: spacing.md,
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     marginBottom: spacing.md,
     borderWidth: 1,
-    borderColor: colors.warning + '40',
+    borderColor: colors.warning + "40",
   },
   laterPhoto: {
     width: 48,
@@ -1041,17 +1212,17 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   laterActions: {
-    flexDirection: 'row',
+    flexDirection: "row",
     gap: spacing.sm,
-    alignItems: 'center',
+    alignItems: "center",
   },
   laterDeclineBtn: {
     width: 32,
     height: 32,
     borderRadius: 16,
     backgroundColor: colors.backgroundLight,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     borderWidth: 1,
     borderColor: colors.error,
   },
@@ -1062,7 +1233,7 @@ const styles = StyleSheet.create({
     borderRadius: borderRadius.md,
   },
   laterAcceptText: {
-    color: '#FFF',
+    color: "#FFF",
     fontSize: fontSize.sm,
     fontWeight: fontWeight.semibold,
   },
@@ -1071,8 +1242,8 @@ const styles = StyleSheet.create({
     backgroundColor: colors.backgroundCard,
     borderRadius: borderRadius.lg,
     padding: spacing.md,
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     marginBottom: spacing.md,
   },
   waitingPhoto: {
@@ -1090,8 +1261,8 @@ const styles = StyleSheet.create({
     fontWeight: fontWeight.semibold,
   },
   waitingStatusRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: spacing.xs,
     marginTop: 2,
   },
@@ -1110,7 +1281,7 @@ const styles = StyleSheet.create({
   },
   // Empty states
   emptyContainer: {
-    alignItems: 'center',
+    alignItems: "center",
     paddingVertical: spacing.xxl * 2,
   },
   emptyTitle: {
@@ -1122,7 +1293,7 @@ const styles = StyleSheet.create({
   emptyText: {
     color: colors.textSecondary,
     fontSize: fontSize.md,
-    textAlign: 'center',
+    textAlign: "center",
     marginTop: spacing.sm,
     paddingHorizontal: spacing.lg,
   },
@@ -1134,12 +1305,12 @@ const styles = StyleSheet.create({
     borderRadius: borderRadius.md,
   },
   emptyButtonText: {
-    color: '#FFF',
+    color: "#FFF",
     fontSize: fontSize.md,
     fontWeight: fontWeight.semibold,
   },
   emptyTabContainer: {
-    alignItems: 'center',
+    alignItems: "center",
     paddingVertical: spacing.xxl,
   },
   emptyTabTitle: {
@@ -1151,22 +1322,22 @@ const styles = StyleSheet.create({
   emptyTabText: {
     color: colors.textSecondary,
     fontSize: fontSize.sm,
-    textAlign: 'center',
+    textAlign: "center",
     marginTop: spacing.sm,
     paddingHorizontal: spacing.lg,
   },
   // Rejected connections styles
   rejectedHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
   },
   rejectedCard: {
     backgroundColor: colors.backgroundCard,
     borderRadius: borderRadius.lg,
     padding: spacing.md,
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     marginBottom: spacing.sm,
     opacity: 0.7,
   },
@@ -1190,9 +1361,9 @@ const styles = StyleSheet.create({
     fontSize: fontSize.sm,
   },
   encouragementBanner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.primary + '15',
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: colors.primary + "15",
     borderRadius: borderRadius.md,
     padding: spacing.md,
     marginBottom: spacing.md,
