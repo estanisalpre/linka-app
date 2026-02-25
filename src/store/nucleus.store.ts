@@ -65,6 +65,14 @@ interface NucleusOverview {
       progress: number;
       maxProgress: number;
     };
+    places?: {
+      userHasLocation: boolean;
+      enabled: boolean;
+      suggestionsCount: number;
+      hasAgreed: boolean;
+      progress: number;
+      maxProgress: number;
+    };
   };
   sharedInterests: { interest: string; isMain: boolean }[];
 }

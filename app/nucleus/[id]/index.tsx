@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import {
   View,
   Text,
@@ -7,6 +7,12 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   Image,
+  Animated,
+  Modal,
+  TextInput,
+  KeyboardAvoidingView,
+  Platform,
+  Alert,
 } from "react-native";
 import { useLocalSearchParams, useRouter, Stack } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -14,6 +20,8 @@ import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { ProgressRing, GlobalHeader } from "../../../src/components";
 import { useNucleusStore } from "../../../src/store/nucleus.store";
+import { getSocket } from "../../../src/services/socket";
+import { connectionApi } from "../../../src/services/api";
 import {
   colors,
   fontSize,
@@ -62,12 +70,73 @@ export default function NucleusScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const { overview, isLoading, loadOverview, clearNucleus } = useNucleusStore();
+  const progressAnim = useRef(new Animated.Value(0)).current;
+  const [animatedProgress, setAnimatedProgress] = useState(0);
+  const [dissolveModalVisible, setDissolveModalVisible] = useState(false);
+  const [dissolveReason, setDissolveReason] = useState("");
+  const [isDissolving, setIsDissolving] = useState(false);
+
+  const wordCount = dissolveReason.trim().split(/\s+/).filter(Boolean).length;
+
+  const handleDissolve = async () => {
+    if (wordCount < 20) {
+      Alert.alert(
+        "Texto insuficiente",
+        "Necesitas escribir al menos 20 palabras para disolver el núcleo.",
+      );
+      return;
+    }
+    setIsDissolving(true);
+    try {
+      await connectionApi.dissolve(id!, dissolveReason.trim());
+      setDissolveModalVisible(false);
+      router.replace("/(tabs)/connections");
+    } catch (error: any) {
+      Alert.alert(
+        "Error",
+        error.response?.data?.message || "No se pudo disolver el núcleo",
+      );
+    } finally {
+      setIsDissolving(false);
+    }
+  };
 
   useEffect(() => {
     if (id) {
       loadOverview(id);
     }
     return () => clearNucleus();
+  }, [id]);
+
+  // Animate progress value whenever it changes
+  useEffect(() => {
+    if (overview?.connection.progress !== undefined) {
+      const targetProgress = overview.connection.progress;
+      Animated.timing(progressAnim, {
+        toValue: targetProgress,
+        duration: 800,
+        useNativeDriver: false,
+      }).start();
+      setAnimatedProgress(targetProgress);
+    }
+  }, [overview?.connection.progress]);
+
+  // Socket listener for real-time nucleus updates
+  useEffect(() => {
+    if (!id) return;
+    const socket = getSocket();
+    if (!socket) return;
+
+    const handleNucleusUpdated = (data: { connectionId: string }) => {
+      if (data.connectionId === id) {
+        loadOverview(id);
+      }
+    };
+
+    socket.on("nucleus:updated", handleNucleusUpdated);
+    return () => {
+      socket.off("nucleus:updated", handleNucleusUpdated);
+    };
   }, [id]);
 
   if (isLoading && !overview) {
@@ -483,6 +552,15 @@ export default function NucleusScreen() {
             </View>
           </TouchableOpacity>
 
+          {/* Dissolve Button */}
+          <TouchableOpacity
+            style={styles.dissolveButton}
+            onPress={() => setDissolveModalVisible(true)}
+          >
+            <Ionicons name="nuclear" size={18} color={colors.error} />
+            <Text style={styles.dissolveButtonText}>Disolver núcleo</Text>
+          </TouchableOpacity>
+
           {/* Places Section */}
           <TouchableOpacity
             style={styles.section}
@@ -549,44 +627,106 @@ export default function NucleusScreen() {
             ) : (
               <View style={styles.disabledSection}>
                 <Ionicons
-                  name="location-outline"
+                  name={
+                    sections.places?.userHasLocation
+                      ? "checkmark-circle-outline"
+                      : "location-outline"
+                  }
                   size={20}
-                  color={colors.textMuted}
+                  color={
+                    sections.places?.userHasLocation
+                      ? colors.success
+                      : colors.textMuted
+                  }
                 />
-                <Text style={styles.disabledText}>
-                  Activa tu ubicación para usar esta función
+                <Text
+                  style={[
+                    styles.disabledText,
+                    sections.places?.userHasLocation && {
+                      color: colors.success,
+                    },
+                  ]}
+                >
+                  {sections.places?.userHasLocation
+                    ? "Tu ubicación está guardada. Esperando a que la otra persona también la active..."
+                    : "Activa tu ubicación para usar esta función"}
                 </Text>
               </View>
             )}
           </TouchableOpacity>
-
-          {/* History Section */}
-          <TouchableOpacity
-            style={styles.section}
-            onPress={() => router.push(`/nucleus/${id}/history`)}
-          >
-            <View style={styles.sectionHeader}>
-              <View style={styles.sectionTitleRow}>
-                <Ionicons name="time" size={24} color={colors.textSecondary} />
-                <Text style={styles.sectionTitle}>Historial</Text>
-              </View>
-            </View>
-
-            <Text style={styles.sectionDescription}>
-              Ve todas las respuestas compartidas
-            </Text>
-
-            <View style={styles.sectionAction}>
-              <Text style={styles.sectionActionText}>Ver historial</Text>
-              <Ionicons
-                name="chevron-forward"
-                size={20}
-                color={colors.primary}
-              />
-            </View>
-          </TouchableOpacity>
         </View>
       </ScrollView>
+
+      {/* Dissolve Modal */}
+      <Modal
+        visible={dissolveModalVisible}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setDissolveModalVisible(false)}
+      >
+        <KeyboardAvoidingView
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+          style={styles.modalOverlay}
+        >
+          <View style={styles.modalContainer}>
+            <View style={styles.modalHeader}>
+              <Ionicons name="nuclear" size={24} color={colors.error} />
+              <Text style={styles.modalTitle}>Disolver núcleo</Text>
+            </View>
+            <Text style={styles.modalSubtitle}>
+              Esta acción no se puede deshacer. La otra persona podrá ver tu
+              mensaje.
+            </Text>
+            <TextInput
+              style={styles.modalTextInput}
+              placeholder="Explica por qué estás dejando el núcleo (mínimo 20 palabras)..."
+              placeholderTextColor={colors.textMuted}
+              multiline
+              numberOfLines={5}
+              value={dissolveReason}
+              onChangeText={setDissolveReason}
+              maxLength={500}
+            />
+            <Text
+              style={[
+                styles.wordCounter,
+                wordCount >= 20
+                  ? styles.wordCounterOk
+                  : styles.wordCounterError,
+              ]}
+            >
+              {wordCount}/20 palabras mínimas
+            </Text>
+            <View style={styles.modalActions}>
+              <TouchableOpacity
+                style={styles.modalCancelButton}
+                onPress={() => {
+                  setDissolveModalVisible(false);
+                  setDissolveReason("");
+                }}
+                disabled={isDissolving}
+              >
+                <Text style={styles.modalCancelText}>Cancelar</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[
+                  styles.modalDissolveButton,
+                  (wordCount < 20 || isDissolving) &&
+                    styles.modalDissolveButtonDisabled,
+                ]}
+                onPress={handleDissolve}
+                disabled={wordCount < 20 || isDissolving}
+              >
+                {isDissolving ? (
+                  <ActivityIndicator size="small" color="white" />
+                ) : (
+                  <Text style={styles.modalDissolveText}>Disolver</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -851,5 +991,102 @@ const styles = StyleSheet.create({
     color: colors.textMuted,
     fontSize: fontSize.sm,
     flex: 1,
+  },
+  dissolveButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: spacing.sm,
+    paddingVertical: spacing.md,
+    marginTop: spacing.md,
+    marginBottom: spacing.xl,
+    borderWidth: 1,
+    borderColor: colors.error,
+    borderRadius: borderRadius.xl,
+  },
+  dissolveButtonText: {
+    color: colors.error,
+    fontSize: fontSize.md,
+    fontWeight: fontWeight.semibold,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.6)",
+    justifyContent: "flex-end",
+  },
+  modalContainer: {
+    backgroundColor: colors.backgroundCard,
+    borderTopLeftRadius: borderRadius.xxl,
+    borderTopRightRadius: borderRadius.xxl,
+    padding: spacing.xl,
+    gap: spacing.md,
+  },
+  modalHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.sm,
+  },
+  modalTitle: {
+    color: colors.text,
+    fontSize: fontSize.xl,
+    fontWeight: fontWeight.bold,
+  },
+  modalSubtitle: {
+    color: colors.textSecondary,
+    fontSize: fontSize.sm,
+    lineHeight: 20,
+  },
+  modalTextInput: {
+    backgroundColor: colors.backgroundLight,
+    borderRadius: borderRadius.lg,
+    padding: spacing.md,
+    color: colors.text,
+    fontSize: fontSize.md,
+    minHeight: 120,
+    textAlignVertical: "top",
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  wordCounter: {
+    fontSize: fontSize.sm,
+    textAlign: "right",
+  },
+  wordCounterOk: {
+    color: colors.success,
+  },
+  wordCounterError: {
+    color: colors.textMuted,
+  },
+  modalActions: {
+    flexDirection: "row",
+    gap: spacing.md,
+    marginTop: spacing.sm,
+  },
+  modalCancelButton: {
+    flex: 1,
+    paddingVertical: spacing.md,
+    borderRadius: borderRadius.lg,
+    backgroundColor: colors.backgroundLight,
+    alignItems: "center",
+  },
+  modalCancelText: {
+    color: colors.text,
+    fontSize: fontSize.md,
+    fontWeight: fontWeight.semibold,
+  },
+  modalDissolveButton: {
+    flex: 1,
+    paddingVertical: spacing.md,
+    borderRadius: borderRadius.lg,
+    backgroundColor: colors.error,
+    alignItems: "center",
+  },
+  modalDissolveButtonDisabled: {
+    opacity: 0.4,
+  },
+  modalDissolveText: {
+    color: "white",
+    fontSize: fontSize.md,
+    fontWeight: fontWeight.semibold,
   },
 });

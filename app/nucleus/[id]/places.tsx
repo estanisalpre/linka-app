@@ -78,6 +78,7 @@ export default function PlacesScreen() {
     latitude: number;
     longitude: number;
   } | null>(null);
+  const [isRequestingLocation, setIsRequestingLocation] = useState(false);
 
   useEffect(() => {
     requestLocationPermission();
@@ -97,6 +98,7 @@ export default function PlacesScreen() {
   }, [id]);
 
   const requestLocationPermission = async () => {
+    setIsRequestingLocation(true);
     try {
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status === "granted") {
@@ -106,12 +108,30 @@ export default function PlacesScreen() {
           longitude: location.coords.longitude,
         });
 
-        // Update location in backend
+        // Reverse-geocode to get city name
+        let locationName = "Ubicación actual";
+        try {
+          const [geo] = await Location.reverseGeocodeAsync({
+            latitude: location.coords.latitude,
+            longitude: location.coords.longitude,
+          });
+          if (geo) {
+            locationName = [geo.city || geo.subregion, geo.country]
+              .filter(Boolean)
+              .join(", ");
+          }
+        } catch {
+          // ignore geocode errors, fallback name is fine
+        }
+
         await api.put("/places/location", {
           latitude: location.coords.latitude,
           longitude: location.coords.longitude,
-          location: "Current location", // In production, reverse geocode this
+          location: locationName,
         });
+
+        // Reload so the UI reflects the updated status
+        await loadPlacesData();
       } else {
         Alert.alert(
           "Ubicación deshabilitada",
@@ -120,6 +140,9 @@ export default function PlacesScreen() {
       }
     } catch (error) {
       console.error("Error requesting location:", error);
+      Alert.alert("Error", "No se pudo obtener tu ubicación");
+    } finally {
+      setIsRequestingLocation(false);
     }
   };
 
@@ -226,6 +249,8 @@ export default function PlacesScreen() {
           options={{
             title: "Lugares",
             headerShown: true,
+            headerStyle: { backgroundColor: colors.background },
+            headerTintColor: colors.text,
           }}
         />
         <ActivityIndicator size="large" color={colors.primary} />
@@ -240,6 +265,8 @@ export default function PlacesScreen() {
           options={{
             title: "Lugares",
             headerShown: true,
+            headerStyle: { backgroundColor: colors.background },
+            headerTintColor: colors.text,
           }}
         />
         <Text style={styles.errorText}>Error al cargar datos</Text>
@@ -254,6 +281,8 @@ export default function PlacesScreen() {
           options={{
             title: "Lugares",
             headerShown: true,
+            headerStyle: { backgroundColor: colors.background },
+            headerTintColor: colors.text,
           }}
         />
         <View style={styles.disabledContainer}>
@@ -275,11 +304,48 @@ export default function PlacesScreen() {
             </Text>
           )}
           <TouchableOpacity
-            style={styles.enableButton}
+            style={[
+              styles.enableButton,
+              isRequestingLocation && { opacity: 0.7 },
+            ]}
             onPress={requestLocationPermission}
+            disabled={isRequestingLocation}
           >
-            <Text style={styles.enableButtonText}>Habilitar Ubicación</Text>
+            {isRequestingLocation ? (
+              <ActivityIndicator size="small" color="white" />
+            ) : (
+              <Text style={styles.enableButtonText}>Habilitar Ubicación</Text>
+            )}
           </TouchableOpacity>
+          {placesData.bothHaveLocation && !placesData.inSameCity && (
+            <Text
+              style={[
+                styles.disabledText,
+                {
+                  marginTop: spacing.sm,
+                  fontSize: fontSize.sm,
+                  color: colors.textMuted ?? colors.textSecondary,
+                },
+              ]}
+            >
+              ¡Tu ubicación fue guardada! Estás esperando que la otra persona
+              también la habilite o que estén en la misma ciudad.
+            </Text>
+          )}
+          {!placesData.bothHaveLocation && userLocation && (
+            <Text
+              style={[
+                styles.disabledText,
+                {
+                  marginTop: spacing.sm,
+                  fontSize: fontSize.sm,
+                  color: colors.success,
+                },
+              ]}
+            >
+              ✓ Tu ubicación fue guardada. Esperando a la otra persona...
+            </Text>
+          )}
         </View>
       </SafeAreaView>
     );
@@ -291,6 +357,8 @@ export default function PlacesScreen() {
         options={{
           title: "Lugares",
           headerShown: true,
+          headerStyle: { backgroundColor: colors.background },
+          headerTintColor: colors.text,
         }}
       />
 

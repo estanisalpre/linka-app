@@ -108,6 +108,9 @@ export const connectionApi = {
 
   decline: (connectionId: string) =>
     api.post(`/connections/${connectionId}/decline`),
+
+  dissolve: (connectionId: string, reason: string) =>
+    api.post(`/connections/${connectionId}/dissolve`, { reason }),
 };
 
 // Nucleus API (replaces old missions API)

@@ -25,7 +25,13 @@ import {
   shadows,
 } from "../../src/utils/theme";
 
-type Tab = "active" | "whoLikedYou" | "whoYouLiked" | "rejected" | "later";
+type Tab =
+  | "active"
+  | "whoLikedYou"
+  | "whoYouLiked"
+  | "rejected"
+  | "later"
+  | "dissolved";
 
 interface TransparencyData {
   whoLikedYou: any[];
@@ -34,12 +40,14 @@ interface TransparencyData {
   rejections: any[];
   postponed: any[];
   cooled: any[];
+  dissolved: any[];
   stats: {
     totalLikesReceived: number;
     totalLikesSent: number;
     totalActiveMatches: number;
     totalRejections: number;
     totalPostponed: number;
+    totalDissolved: number;
   };
 }
 
@@ -69,10 +77,18 @@ export default function ConnectionsScreen() {
         loadTransparencyData();
       });
 
+      // Listen for nucleus dissolved (the other person dissolved it)
+      socket.on("nucleus:dissolved", (data: any) => {
+        console.log("Nucleus dissolved:", data);
+        loadTransparencyData();
+        setActiveTab("dissolved");
+      });
+
       // Cleanup listeners on unmount
       return () => {
         socket.off(SocketEvents.CONNECTION_ACCEPTED);
         socket.off(SocketEvents.CONNECTION_REQUEST);
+        socket.off("nucleus:dissolved");
       };
     }
   }, []);
@@ -190,6 +206,12 @@ export default function ConnectionsScreen() {
       label: "Otro momento",
       count: transparencyData?.postponed.length || 0,
       icon: "calendar",
+    },
+    {
+      key: "dissolved" as Tab,
+      label: "Antiguos",
+      count: transparencyData?.dissolved?.length || 0,
+      icon: "nuclear",
     },
   ];
 
@@ -478,6 +500,60 @@ export default function ConnectionsScreen() {
     );
   };
 
+  const renderDissolved = () => {
+    if (!transparencyData?.dissolved?.length) {
+      return (
+        <View style={styles.emptyState}>
+          <Ionicons name="nuclear-outline" size={64} color={colors.textMuted} />
+          <Text style={styles.emptyTitle}>Sin núcleos antiguos</Text>
+          <Text style={styles.emptyDescription}>
+            Los núcleos que se disuelvan aparecerán aquí
+          </Text>
+        </View>
+      );
+    }
+
+    return (
+      <>
+        {transparencyData.dissolved.map((item: any) => (
+          <View
+            key={item.connectionId}
+            style={[styles.card, styles.dissolvedCard]}
+          >
+            <Image
+              source={{
+                uri:
+                  item.user.photos?.[0] ||
+                  "https://ui-avatars.com/api/?name=User",
+              }}
+              style={[styles.cardPhoto, styles.dissolvedPhoto]}
+            />
+            <View style={styles.cardInfo}>
+              <Text style={styles.cardName}>{item.user.name}</Text>
+              {item.theyDissolvedIt && item.dissolveReason ? (
+                <View style={styles.dissolvedReasonContainer}>
+                  <Ionicons
+                    name="chatbubble-ellipses"
+                    size={14}
+                    color={colors.error}
+                  />
+                  <Text style={styles.dissolvedReasonText}>
+                    {item.dissolveReason}
+                  </Text>
+                </View>
+              ) : item.iDissolvedIt ? (
+                <Text style={styles.cardStatus}>Lo disolviste tú</Text>
+              ) : null}
+              <Text style={[styles.cardStatus, { color: colors.error }]}>
+                Núcleo disuelto
+              </Text>
+            </View>
+          </View>
+        ))}
+      </>
+    );
+  };
+
   const renderContent = () => {
     switch (activeTab) {
       case "active":
@@ -490,6 +566,8 @@ export default function ConnectionsScreen() {
         return renderRejections();
       case "later":
         return renderPostponed();
+      case "dissolved":
+        return renderDissolved();
       default:
         return null;
     }
@@ -770,5 +848,28 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     textAlign: "center",
     paddingHorizontal: spacing.xl,
+  },
+  dissolvedCard: {
+    opacity: 0.8,
+    borderLeftWidth: 3,
+    borderLeftColor: colors.error,
+  },
+  dissolvedPhoto: {
+    opacity: 0.5,
+  },
+  dissolvedReasonContainer: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: spacing.xs,
+    backgroundColor: colors.errorLight,
+    padding: spacing.sm,
+    borderRadius: borderRadius.sm,
+    marginTop: spacing.xs,
+  },
+  dissolvedReasonText: {
+    fontSize: fontSize.sm,
+    color: colors.error,
+    flex: 1,
+    lineHeight: 18,
   },
 });
