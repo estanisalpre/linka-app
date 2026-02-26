@@ -108,7 +108,11 @@ export default function PortalScreen() {
   const [selectedUser, setSelectedUser] = useState<PortalUser | null>(null);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [connectedUserName, setConnectedUserName] = useState("");
-  const { initiateConnection, isLoading: isConnecting } = useConnectionStore();
+  const {
+    initiateConnection,
+    connections,
+    isLoading: isConnecting,
+  } = useConnectionStore();
   const { user: currentUser } = useAuthStore();
 
   const portalInfo = PORTAL_INFO[id || "honesty"];
@@ -353,35 +357,69 @@ export default function PortalScreen() {
                     </ScrollView>
                   )}
 
-                  {/* Create connection button */}
+                  {/* View full profile button */}
                   <TouchableOpacity
-                    style={[
-                      styles.connectButton,
-                      { backgroundColor: portalInfo.color },
-                    ]}
-                    onPress={() => handleCreateConnection(user)}
-                    disabled={isConnecting}
+                    style={styles.viewProfileButton}
+                    onPress={() => router.push(`/user/${user.id}` as any)}
+                    activeOpacity={0.8}
                   >
-                    {isConnecting ? (
-                      <ActivityIndicator size="small" color="#FFF" />
-                    ) : (
-                      <>
-                        <Ionicons
-                          name="add-circle-outline"
-                          size={20}
-                          color="#FFF"
-                        />
-                        <Text style={styles.connectButtonText}>
-                          Crear conexión
-                        </Text>
-                      </>
-                    )}
+                    <Ionicons name="person" size={16} color={colors.primary} />
+                    <Text style={styles.viewProfileText}>
+                      Ver perfil completo
+                    </Text>
+                    <Ionicons
+                      name="chevron-forward"
+                      size={14}
+                      color={colors.primary}
+                    />
                   </TouchableOpacity>
 
-                  <Text style={styles.connectHint}>
-                    Al crear una conexión, comenzarán las misiones para
-                    conocerse
-                  </Text>
+                  {/* Create connection button */}
+                  {connections.some(
+                    (c) => c.otherUser.id === user.id && c.status !== "ENDED",
+                  ) ? (
+                    <View style={styles.alreadyConnectedBadge}>
+                      <Ionicons
+                        name="checkmark-circle"
+                        size={18}
+                        color={colors.success}
+                      />
+                      <Text style={styles.alreadyConnectedText}>
+                        Conexión enviada
+                      </Text>
+                    </View>
+                  ) : (
+                    <>
+                      <TouchableOpacity
+                        style={[
+                          styles.connectButton,
+                          { backgroundColor: portalInfo.color },
+                        ]}
+                        onPress={() => handleCreateConnection(user)}
+                        disabled={isConnecting}
+                      >
+                        {isConnecting ? (
+                          <ActivityIndicator size="small" color="#FFF" />
+                        ) : (
+                          <>
+                            <Ionicons
+                              name="add-circle-outline"
+                              size={20}
+                              color="#FFF"
+                            />
+                            <Text style={styles.connectButtonText}>
+                              Crear conexión
+                            </Text>
+                          </>
+                        )}
+                      </TouchableOpacity>
+
+                      <Text style={styles.connectHint}>
+                        Al crear una conexión, comenzarán las misiones para
+                        conocerse
+                      </Text>
+                    </>
+                  )}
                 </View>
               )}
             </TouchableOpacity>
@@ -612,6 +650,23 @@ const styles = StyleSheet.create({
     borderRadius: borderRadius.md,
     marginRight: spacing.sm,
   },
+  viewProfileButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: spacing.xs,
+    paddingVertical: spacing.sm,
+    borderRadius: borderRadius.md,
+    borderWidth: 1,
+    borderColor: colors.primary + "60",
+    backgroundColor: colors.primary + "15",
+    marginBottom: spacing.sm,
+  },
+  viewProfileText: {
+    color: colors.primary,
+    fontSize: fontSize.sm,
+    fontWeight: fontWeight.medium,
+  },
   connectButton: {
     flexDirection: "row",
     alignItems: "center",
@@ -630,6 +685,22 @@ const styles = StyleSheet.create({
     fontSize: fontSize.xs,
     textAlign: "center",
     marginTop: spacing.sm,
+  },
+  alreadyConnectedBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: spacing.sm,
+    paddingVertical: spacing.md,
+    borderRadius: borderRadius.md,
+    backgroundColor: colors.success + "20",
+    borderWidth: 1,
+    borderColor: colors.success + "60",
+  },
+  alreadyConnectedText: {
+    color: colors.success,
+    fontSize: fontSize.sm,
+    fontWeight: fontWeight.semibold,
   },
   emptyContainer: {
     alignItems: "center",

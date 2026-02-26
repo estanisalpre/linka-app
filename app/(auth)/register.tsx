@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -10,11 +10,11 @@ import {
   ScrollView,
   KeyboardAvoidingView,
   Platform,
-} from 'react-native';
-import { router } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
-import * as ImagePicker from 'expo-image-picker';
+} from "react-native";
+import { router } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
+import * as ImagePicker from "expo-image-picker";
 import Animated, {
   FadeIn,
   FadeInDown,
@@ -23,42 +23,53 @@ import Animated, {
   useAnimatedStyle,
   withSpring,
   withTiming,
-} from 'react-native-reanimated';
-import { Button, Modal } from '../../src/components';
-import { useAuthStore } from '../../src/store/auth.store';
-import { colors, fontSize, fontWeight, spacing, borderRadius } from '../../src/utils/theme';
+} from "react-native-reanimated";
+import { Button, Modal, InterestsPicker } from "../../src/components";
+import { useAuthStore } from "../../src/store/auth.store";
+import {
+  colors,
+  fontSize,
+  fontWeight,
+  spacing,
+  borderRadius,
+} from "../../src/utils/theme";
 
-const { width } = Dimensions.get('window');
+const { width } = Dimensions.get("window");
 const TOTAL_STEPS = 8;
 
 // Data options
 const GENDERS = [
-  { value: 'MALE', label: 'Hombre', icon: 'male' },
-  { value: 'FEMALE', label: 'Mujer', icon: 'female' },
-  { value: 'NON_BINARY', label: 'No binario', icon: 'transgender' },
-  { value: 'OTHER', label: 'Otro', icon: 'ellipsis-horizontal' },
-];
-
-const INTERESTS_OPTIONS = [
-  { value: 'musica', label: 'Musica', icon: 'musical-notes' },
-  { value: 'deportes', label: 'Deportes', icon: 'fitness' },
-  { value: 'viajes', label: 'Viajes', icon: 'airplane' },
-  { value: 'cine', label: 'Cine', icon: 'film' },
-  { value: 'libros', label: 'Libros', icon: 'book' },
-  { value: 'cocina', label: 'Cocina', icon: 'restaurant' },
-  { value: 'arte', label: 'Arte', icon: 'color-palette' },
-  { value: 'tecnologia', label: 'Tecnologia', icon: 'laptop' },
-  { value: 'naturaleza', label: 'Naturaleza', icon: 'leaf' },
-  { value: 'fotografia', label: 'Fotografia', icon: 'camera' },
-  { value: 'gaming', label: 'Gaming', icon: 'game-controller' },
-  { value: 'yoga', label: 'Yoga/Meditacion', icon: 'body' },
+  { value: "MALE", label: "Hombre", icon: "male" },
+  { value: "FEMALE", label: "Mujer", icon: "female" },
+  { value: "NON_BINARY", label: "No binario", icon: "transgender" },
+  { value: "OTHER", label: "Otro", icon: "ellipsis-horizontal" },
 ];
 
 const LOOKING_FOR_OPTIONS = [
-  { value: 'amistad', label: 'Amistad', icon: 'people', desc: 'Conocer nuevos amigos' },
-  { value: 'relacion', label: 'Relacion seria', icon: 'heart', desc: 'Algo a largo plazo' },
-  { value: 'casual', label: 'Algo casual', icon: 'cafe', desc: 'Sin presiones' },
-  { value: 'nosedice', label: 'Que fluya', icon: 'sparkles', desc: 'Lo que surja' },
+  {
+    value: "amistad",
+    label: "Amistad",
+    icon: "people",
+    desc: "Conocer nuevos amigos",
+  },
+  {
+    value: "relacion",
+    label: "Relacion seria",
+    icon: "heart",
+    desc: "Algo a largo plazo",
+  },
+  {
+    value: "casual",
+    label: "Algo casual",
+    icon: "cafe",
+    desc: "Sin presiones",
+  },
+  {
+    value: "nosedice",
+    label: "Que fluya",
+    icon: "sparkles",
+    desc: "Lo que surja",
+  },
 ];
 
 // Animated chip component
@@ -112,7 +123,9 @@ const AnimatedChip = ({
           />
         )}
         <View style={showDesc ? styles.chipTextContainer : undefined}>
-          <Text style={[styles.chipText, isSelected && styles.chipTextSelected]}>
+          <Text
+            style={[styles.chipText, isSelected && styles.chipTextSelected]}
+          >
             {item.label}
           </Text>
           {showDesc && item.desc && (
@@ -120,8 +133,15 @@ const AnimatedChip = ({
           )}
         </View>
         {isSelected && (
-          <Animated.View entering={FadeIn.duration(200)} style={styles.chipCheck}>
-            <Ionicons name="checkmark-circle" size={18} color={colors.primary} />
+          <Animated.View
+            entering={FadeIn.duration(200)}
+            style={styles.chipCheck}
+          >
+            <Ionicons
+              name="checkmark-circle"
+              size={18}
+              color={colors.primary}
+            />
           </Animated.View>
         )}
       </TouchableOpacity>
@@ -157,7 +177,11 @@ const PhotoSlot = ({
           </>
         ) : (
           <View style={styles.photoPlaceholder}>
-            <Ionicons name="add" size={isMain ? 40 : 28} color={colors.textMuted} />
+            <Ionicons
+              name="add"
+              size={isMain ? 40 : 28}
+              color={colors.textMuted}
+            />
             {isMain && <Text style={styles.photoMainText}>Foto principal</Text>}
           </View>
         )}
@@ -174,7 +198,7 @@ const PhotoSlot = ({
 // Age selector with horizontal scroll
 const AgeSelector = ({
   value,
-  onChange
+  onChange,
 }: {
   value: number;
   onChange: (age: number) => void;
@@ -182,7 +206,10 @@ const AgeSelector = ({
   const ages = Array.from({ length: 63 }, (_, i) => i + 18); // 18-80
 
   return (
-    <Animated.View entering={FadeInDown.springify()} style={styles.ageContainer}>
+    <Animated.View
+      entering={FadeInDown.springify()}
+      style={styles.ageContainer}
+    >
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
@@ -198,7 +225,12 @@ const AgeSelector = ({
               onPress={() => onChange(age)}
               activeOpacity={0.7}
             >
-              <Text style={[styles.ageText, value === age && styles.ageTextSelected]}>
+              <Text
+                style={[
+                  styles.ageText,
+                  value === age && styles.ageTextSelected,
+                ]}
+              >
                 {age}
               </Text>
             </TouchableOpacity>
@@ -216,16 +248,16 @@ export default function RegisterScreen() {
   const [showErrorModal, setShowErrorModal] = useState(false);
 
   const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    password: '',
+    name: "",
+    email: "",
+    password: "",
     age: 18,
-    gender: '',
+    gender: "",
     interestedIn: [] as string[],
     interests: [] as string[],
     lookingFor: [] as string[],
     photos: [] as string[],
-    bio: '',
+    bio: "",
   });
 
   const progress = useSharedValue(1 / TOTAL_STEPS);
@@ -242,7 +274,10 @@ export default function RegisterScreen() {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
-  const toggleArrayField = (field: 'interestedIn' | 'interests' | 'lookingFor', value: string) => {
+  const toggleArrayField = (
+    field: "interestedIn" | "interests" | "lookingFor",
+    value: string,
+  ) => {
     setFormData((prev) => ({
       ...prev,
       [field]: prev[field].includes(value)
@@ -276,21 +311,30 @@ export default function RegisterScreen() {
     if (!result.canceled) {
       const newPhotos = [...formData.photos];
       newPhotos[index] = result.assets[0].uri;
-      updateField('photos', newPhotos);
+      updateField("photos", newPhotos);
     }
   };
 
   const canProceed = () => {
     switch (step) {
-      case 1: return formData.name.length >= 2;
-      case 2: return formData.email.includes('@') && formData.password.length >= 6;
-      case 3: return formData.age >= 18;
-      case 4: return formData.gender !== '';
-      case 5: return formData.interestedIn.length > 0;
-      case 6: return formData.interests.length >= 3;
-      case 7: return formData.lookingFor.length > 0;
-      case 8: return formData.photos.length >= 1;
-      default: return true;
+      case 1:
+        return formData.name.length >= 2;
+      case 2:
+        return formData.email.includes("@") && formData.password.length >= 6;
+      case 3:
+        return formData.age >= 18;
+      case 4:
+        return formData.gender !== "";
+      case 5:
+        return formData.interestedIn.length > 0;
+      case 6:
+        return formData.interests.length >= 5;
+      case 7:
+        return formData.lookingFor.length > 0;
+      case 8:
+        return formData.photos.length >= 2;
+      default:
+        return true;
     }
   };
 
@@ -322,7 +366,7 @@ export default function RegisterScreen() {
 
   const handleSuccessModalClose = () => {
     setShowSuccessModal(false);
-    router.replace('/(tabs)');
+    router.replace("/(tabs)");
   };
 
   const handleErrorModalClose = () => {
@@ -334,15 +378,28 @@ export default function RegisterScreen() {
     switch (step) {
       case 1:
         return (
-          <Animated.View key="step1" entering={FadeInDown.springify()} style={styles.stepContent}>
+          <Animated.View
+            key="step1"
+            entering={FadeInDown.springify()}
+            style={styles.stepContent}
+          >
             <View style={styles.stepHeader}>
-              <Animated.Text entering={FadeInDown.delay(100)} style={styles.emoji}>
+              <Animated.Text
+                entering={FadeInDown.delay(100)}
+                style={styles.emoji}
+              >
                 👋
               </Animated.Text>
-              <Animated.Text entering={FadeInDown.delay(200)} style={styles.stepTitle}>
+              <Animated.Text
+                entering={FadeInDown.delay(200)}
+                style={styles.stepTitle}
+              >
                 Como te llamas?
               </Animated.Text>
-              <Animated.Text entering={FadeInDown.delay(300)} style={styles.stepSubtitle}>
+              <Animated.Text
+                entering={FadeInDown.delay(300)}
+                style={styles.stepSubtitle}
+              >
                 Asi te veran los demas
               </Animated.Text>
             </View>
@@ -353,7 +410,7 @@ export default function RegisterScreen() {
                 placeholder="Tu nombre"
                 placeholderTextColor={colors.textMuted}
                 value={formData.name}
-                onChangeText={(v) => updateField('name', v)}
+                onChangeText={(v) => updateField("name", v)}
                 autoFocus
                 autoCapitalize="words"
               />
@@ -363,41 +420,65 @@ export default function RegisterScreen() {
 
       case 2:
         return (
-          <Animated.View key="step2" entering={FadeInDown.springify()} style={styles.stepContent}>
+          <Animated.View
+            key="step2"
+            entering={FadeInDown.springify()}
+            style={styles.stepContent}
+          >
             <View style={styles.stepHeader}>
-              <Animated.Text entering={FadeInDown.delay(100)} style={styles.emoji}>
+              <Animated.Text
+                entering={FadeInDown.delay(100)}
+                style={styles.emoji}
+              >
                 🔐
               </Animated.Text>
-              <Animated.Text entering={FadeInDown.delay(200)} style={styles.stepTitle}>
+              <Animated.Text
+                entering={FadeInDown.delay(200)}
+                style={styles.stepTitle}
+              >
                 Tu cuenta
               </Animated.Text>
-              <Animated.Text entering={FadeInDown.delay(300)} style={styles.stepSubtitle}>
+              <Animated.Text
+                entering={FadeInDown.delay(300)}
+                style={styles.stepSubtitle}
+              >
                 Email y contraseña para ingresar
               </Animated.Text>
             </View>
 
-            <Animated.View entering={FadeInUp.delay(400).springify()} style={styles.inputGroup}>
+            <Animated.View
+              entering={FadeInUp.delay(400).springify()}
+              style={styles.inputGroup}
+            >
               <View style={styles.inputContainer}>
-                <Ionicons name="mail-outline" size={20} color={colors.textMuted} />
+                <Ionicons
+                  name="mail-outline"
+                  size={20}
+                  color={colors.textMuted}
+                />
                 <TextInput
                   style={styles.input}
                   placeholder="tu@email.com"
                   placeholderTextColor={colors.textMuted}
                   value={formData.email}
-                  onChangeText={(v) => updateField('email', v.toLowerCase())}
+                  onChangeText={(v) => updateField("email", v.toLowerCase())}
                   keyboardType="email-address"
                   autoCapitalize="none"
                 />
               </View>
 
               <View style={styles.inputContainer}>
-                <Ionicons name="lock-closed-outline" size={20} color={colors.textMuted} />
+                <Ionicons
+                  name="lock-closed-outline"
+                  size={20}
+                  color={colors.textMuted}
+                />
                 <TextInput
                   style={styles.input}
                   placeholder="Contraseña (min. 6 caracteres)"
                   placeholderTextColor={colors.textMuted}
                   value={formData.password}
-                  onChangeText={(v) => updateField('password', v)}
+                  onChangeText={(v) => updateField("password", v)}
                   secureTextEntry
                 />
               </View>
@@ -407,22 +488,41 @@ export default function RegisterScreen() {
 
       case 3:
         return (
-          <Animated.View key="step3" entering={FadeInDown.springify()} style={styles.stepContent}>
+          <Animated.View
+            key="step3"
+            entering={FadeInDown.springify()}
+            style={styles.stepContent}
+          >
             <View style={styles.stepHeader}>
-              <Animated.Text entering={FadeInDown.delay(100)} style={styles.emoji}>
+              <Animated.Text
+                entering={FadeInDown.delay(100)}
+                style={styles.emoji}
+              >
                 🎂
               </Animated.Text>
-              <Animated.Text entering={FadeInDown.delay(200)} style={styles.stepTitle}>
+              <Animated.Text
+                entering={FadeInDown.delay(200)}
+                style={styles.stepTitle}
+              >
                 Cuantos años tienes?
               </Animated.Text>
-              <Animated.Text entering={FadeInDown.delay(300)} style={styles.stepSubtitle}>
+              <Animated.Text
+                entering={FadeInDown.delay(300)}
+                style={styles.stepSubtitle}
+              >
                 Debes ser mayor de 18
               </Animated.Text>
             </View>
 
-            <AgeSelector value={formData.age} onChange={(age) => updateField('age', age)} />
+            <AgeSelector
+              value={formData.age}
+              onChange={(age) => updateField("age", age)}
+            />
 
-            <Animated.View entering={FadeIn.delay(500)} style={styles.ageDisplay}>
+            <Animated.View
+              entering={FadeIn.delay(500)}
+              style={styles.ageDisplay}
+            >
               <Text style={styles.ageDisplayText}>{formData.age} años</Text>
             </Animated.View>
           </Animated.View>
@@ -430,12 +530,22 @@ export default function RegisterScreen() {
 
       case 4:
         return (
-          <Animated.View key="step4" entering={FadeInDown.springify()} style={styles.stepContent}>
+          <Animated.View
+            key="step4"
+            entering={FadeInDown.springify()}
+            style={styles.stepContent}
+          >
             <View style={styles.stepHeader}>
-              <Animated.Text entering={FadeInDown.delay(100)} style={styles.emoji}>
+              <Animated.Text
+                entering={FadeInDown.delay(100)}
+                style={styles.emoji}
+              >
                 ✨
               </Animated.Text>
-              <Animated.Text entering={FadeInDown.delay(200)} style={styles.stepTitle}>
+              <Animated.Text
+                entering={FadeInDown.delay(200)}
+                style={styles.stepTitle}
+              >
                 Como te identificas?
               </Animated.Text>
             </View>
@@ -446,7 +556,7 @@ export default function RegisterScreen() {
                   key={gender.value}
                   item={gender}
                   isSelected={formData.gender === gender.value}
-                  onPress={() => updateField('gender', gender.value)}
+                  onPress={() => updateField("gender", gender.value)}
                   index={index}
                   showDesc={false}
                 />
@@ -457,15 +567,28 @@ export default function RegisterScreen() {
 
       case 5:
         return (
-          <Animated.View key="step5" entering={FadeInDown.springify()} style={styles.stepContent}>
+          <Animated.View
+            key="step5"
+            entering={FadeInDown.springify()}
+            style={styles.stepContent}
+          >
             <View style={styles.stepHeader}>
-              <Animated.Text entering={FadeInDown.delay(100)} style={styles.emoji}>
+              <Animated.Text
+                entering={FadeInDown.delay(100)}
+                style={styles.emoji}
+              >
                 💕
               </Animated.Text>
-              <Animated.Text entering={FadeInDown.delay(200)} style={styles.stepTitle}>
+              <Animated.Text
+                entering={FadeInDown.delay(200)}
+                style={styles.stepTitle}
+              >
                 Quien te interesa?
               </Animated.Text>
-              <Animated.Text entering={FadeInDown.delay(300)} style={styles.stepSubtitle}>
+              <Animated.Text
+                entering={FadeInDown.delay(300)}
+                style={styles.stepSubtitle}
+              >
                 Puedes elegir mas de uno
               </Animated.Text>
             </View>
@@ -476,7 +599,7 @@ export default function RegisterScreen() {
                   key={gender.value}
                   item={gender}
                   isSelected={formData.interestedIn.includes(gender.value)}
-                  onPress={() => toggleArrayField('interestedIn', gender.value)}
+                  onPress={() => toggleArrayField("interestedIn", gender.value)}
                   index={index}
                 />
               ))}
@@ -486,54 +609,70 @@ export default function RegisterScreen() {
 
       case 6:
         return (
-          <Animated.View key="step6" entering={FadeInDown.springify()} style={styles.stepContent}>
+          <Animated.View
+            key="step6"
+            entering={FadeInDown.springify()}
+            style={styles.stepContent}
+          >
             <View style={styles.stepHeader}>
-              <Animated.Text entering={FadeInDown.delay(100)} style={styles.emoji}>
+              <Animated.Text
+                entering={FadeInDown.delay(100)}
+                style={styles.emoji}
+              >
                 🎯
               </Animated.Text>
-              <Animated.Text entering={FadeInDown.delay(200)} style={styles.stepTitle}>
+              <Animated.Text
+                entering={FadeInDown.delay(200)}
+                style={styles.stepTitle}
+              >
                 Que te gusta?
               </Animated.Text>
-              <Animated.Text entering={FadeInDown.delay(300)} style={styles.stepSubtitle}>
-                Elige al menos 3 intereses
+              <Animated.Text
+                entering={FadeInDown.delay(300)}
+                style={styles.stepSubtitle}
+              >
+                Elige al menos 5 intereses (máx. 10)
               </Animated.Text>
             </View>
 
             <ScrollView
               style={styles.interestsScroll}
               showsVerticalScrollIndicator={false}
-              contentContainerStyle={styles.interestsGrid}
             >
-              {INTERESTS_OPTIONS.map((interest, index) => (
-                <AnimatedChip
-                  key={interest.value}
-                  item={interest}
-                  isSelected={formData.interests.includes(interest.value)}
-                  onPress={() => toggleArrayField('interests', interest.value)}
-                  index={index}
-                />
-              ))}
+              <InterestsPicker
+                selected={formData.interests}
+                onChange={(interests) =>
+                  setFormData((prev) => ({ ...prev, interests }))
+                }
+              />
             </ScrollView>
-
-            <Animated.View entering={FadeIn} style={styles.selectionCount}>
-              <Text style={styles.selectionCountText}>
-                {formData.interests.length} seleccionados
-              </Text>
-            </Animated.View>
           </Animated.View>
         );
 
       case 7:
         return (
-          <Animated.View key="step7" entering={FadeInDown.springify()} style={styles.stepContent}>
+          <Animated.View
+            key="step7"
+            entering={FadeInDown.springify()}
+            style={styles.stepContent}
+          >
             <View style={styles.stepHeader}>
-              <Animated.Text entering={FadeInDown.delay(100)} style={styles.emoji}>
+              <Animated.Text
+                entering={FadeInDown.delay(100)}
+                style={styles.emoji}
+              >
                 🔮
               </Animated.Text>
-              <Animated.Text entering={FadeInDown.delay(200)} style={styles.stepTitle}>
+              <Animated.Text
+                entering={FadeInDown.delay(200)}
+                style={styles.stepTitle}
+              >
                 Que buscas?
               </Animated.Text>
-              <Animated.Text entering={FadeInDown.delay(300)} style={styles.stepSubtitle}>
+              <Animated.Text
+                entering={FadeInDown.delay(300)}
+                style={styles.stepSubtitle}
+              >
                 Puedes elegir varias opciones
               </Animated.Text>
             </View>
@@ -544,7 +683,7 @@ export default function RegisterScreen() {
                   key={option.value}
                   item={option}
                   isSelected={formData.lookingFor.includes(option.value)}
-                  onPress={() => toggleArrayField('lookingFor', option.value)}
+                  onPress={() => toggleArrayField("lookingFor", option.value)}
                   index={index}
                   showDesc={true}
                 />
@@ -555,16 +694,29 @@ export default function RegisterScreen() {
 
       case 8:
         return (
-          <Animated.View key="step8" entering={FadeInDown.springify()} style={styles.stepContent}>
+          <Animated.View
+            key="step8"
+            entering={FadeInDown.springify()}
+            style={styles.stepContent}
+          >
             <View style={styles.stepHeader}>
-              <Animated.Text entering={FadeInDown.delay(100)} style={styles.emoji}>
+              <Animated.Text
+                entering={FadeInDown.delay(100)}
+                style={styles.emoji}
+              >
                 📸
               </Animated.Text>
-              <Animated.Text entering={FadeInDown.delay(200)} style={styles.stepTitle}>
+              <Animated.Text
+                entering={FadeInDown.delay(200)}
+                style={styles.stepTitle}
+              >
                 Tus fotos
               </Animated.Text>
-              <Animated.Text entering={FadeInDown.delay(300)} style={styles.stepSubtitle}>
-                Agrega al menos una foto
+              <Animated.Text
+                entering={FadeInDown.delay(300)}
+                style={styles.stepSubtitle}
+              >
+                Agrega al menos 2 fotos
               </Animated.Text>
             </View>
 
@@ -588,14 +740,17 @@ export default function RegisterScreen() {
             </View>
 
             {/* Optional bio */}
-            <Animated.View entering={FadeInUp.delay(600)} style={styles.bioSection}>
+            <Animated.View
+              entering={FadeInUp.delay(600)}
+              style={styles.bioSection}
+            >
               <Text style={styles.bioLabel}>Bio (opcional)</Text>
               <TextInput
                 style={styles.bioInput}
                 placeholder="Cuentanos algo sobre ti..."
                 placeholderTextColor={colors.textMuted}
                 value={formData.bio}
-                onChangeText={(v) => updateField('bio', v)}
+                onChangeText={(v) => updateField("bio", v)}
                 multiline
                 maxLength={300}
               />
@@ -627,13 +782,15 @@ export default function RegisterScreen() {
           <Animated.View style={[styles.progressFill, progressStyle]} />
         </View>
 
-        <Text style={styles.stepIndicator}>{step}/{TOTAL_STEPS}</Text>
+        <Text style={styles.stepIndicator}>
+          {step}/{TOTAL_STEPS}
+        </Text>
       </View>
 
       {/* Content */}
       <KeyboardAvoidingView
         style={styles.content}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
       >
         <ScrollView
           style={styles.scrollView}
@@ -668,7 +825,7 @@ export default function RegisterScreen() {
           {step === 1 && (
             <View style={styles.loginLink}>
               <Text style={styles.loginText}>Ya tienes cuenta? </Text>
-              <TouchableOpacity onPress={() => router.replace('/(auth)/login')}>
+              <TouchableOpacity onPress={() => router.replace("/(auth)/login")}>
                 <Text style={styles.loginLinkText}>Inicia sesion</Text>
               </TouchableOpacity>
             </View>
@@ -694,7 +851,7 @@ export default function RegisterScreen() {
         onClose={handleErrorModalClose}
         type="error"
         title="Algo salio mal"
-        message={error || 'No pudimos crear tu cuenta. Intenta de nuevo.'}
+        message={error || "No pudimos crear tu cuenta. Intenta de nuevo."}
         buttonText="Entendido"
         onButtonPress={handleErrorModalClose}
       />
@@ -708,8 +865,8 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
   },
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     paddingHorizontal: spacing.lg,
     paddingTop: spacing.xxl + spacing.lg,
     paddingBottom: spacing.md,
@@ -720,18 +877,18 @@ const styles = StyleSheet.create({
     height: 40,
     borderRadius: 20,
     backgroundColor: colors.backgroundCard,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
   },
   progressBar: {
     flex: 1,
     height: 4,
     backgroundColor: colors.backgroundCard,
     borderRadius: 2,
-    overflow: 'hidden',
+    overflow: "hidden",
   },
   progressFill: {
-    height: '100%',
+    height: "100%",
     backgroundColor: colors.primary,
     borderRadius: 2,
   },
@@ -739,7 +896,7 @@ const styles = StyleSheet.create({
     color: colors.textMuted,
     fontSize: fontSize.sm,
     width: 35,
-    textAlign: 'right',
+    textAlign: "right",
   },
   content: {
     flex: 1,
@@ -756,7 +913,7 @@ const styles = StyleSheet.create({
     paddingTop: spacing.xl,
   },
   stepHeader: {
-    alignItems: 'center',
+    alignItems: "center",
     marginBottom: spacing.xl,
   },
   emoji: {
@@ -767,13 +924,13 @@ const styles = StyleSheet.create({
     color: colors.text,
     fontSize: fontSize.xxl,
     fontWeight: fontWeight.bold,
-    textAlign: 'center',
+    textAlign: "center",
     marginBottom: spacing.xs,
   },
   stepSubtitle: {
     color: colors.textSecondary,
     fontSize: fontSize.md,
-    textAlign: 'center',
+    textAlign: "center",
   },
   bigInput: {
     backgroundColor: colors.backgroundCard,
@@ -782,14 +939,14 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.lg,
     color: colors.text,
     fontSize: fontSize.xl,
-    textAlign: 'center',
+    textAlign: "center",
   },
   inputGroup: {
     gap: spacing.md,
   },
   inputContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     backgroundColor: colors.backgroundCard,
     borderRadius: borderRadius.lg,
     paddingHorizontal: spacing.md,
@@ -811,8 +968,8 @@ const styles = StyleSheet.create({
   ageItem: {
     width: 60,
     height: 60,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     borderRadius: 30,
     backgroundColor: colors.backgroundCard,
     marginHorizontal: 4,
@@ -832,7 +989,7 @@ const styles = StyleSheet.create({
     fontSize: fontSize.xl,
   },
   ageDisplay: {
-    alignItems: 'center',
+    alignItems: "center",
     marginTop: spacing.xl,
   },
   ageDisplayText: {
@@ -841,29 +998,29 @@ const styles = StyleSheet.create({
     fontWeight: fontWeight.bold,
   },
   genderGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'center',
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "center",
     gap: spacing.md,
     marginTop: spacing.lg,
   },
   chip: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     backgroundColor: colors.backgroundCard,
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.md,
     borderRadius: borderRadius.full,
     borderWidth: 2,
-    borderColor: 'transparent',
+    borderColor: "transparent",
     gap: spacing.sm,
   },
   chipSelected: {
     borderColor: colors.primary,
-    backgroundColor: 'rgba(139, 92, 246, 0.15)',
+    backgroundColor: "rgba(139, 92, 246, 0.15)",
   },
   chipLarge: {
-    width: '100%',
+    width: "100%",
     paddingVertical: spacing.lg,
     borderRadius: borderRadius.xl,
   },
@@ -884,21 +1041,21 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   chipCheck: {
-    marginLeft: 'auto',
+    marginLeft: "auto",
   },
   interestsScroll: {
     flex: 1,
     marginTop: spacing.md,
   },
   interestsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'center',
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "center",
     gap: spacing.sm,
     paddingBottom: spacing.lg,
   },
   selectionCount: {
-    alignItems: 'center',
+    alignItems: "center",
     paddingVertical: spacing.sm,
   },
   selectionCountText: {
@@ -911,14 +1068,14 @@ const styles = StyleSheet.create({
     marginTop: spacing.lg,
   },
   photosGrid: {
-    flexDirection: 'row',
+    flexDirection: "row",
     gap: spacing.md,
     marginTop: spacing.lg,
   },
   photosSmall: {
     flex: 1,
-    flexDirection: 'row',
-    flexWrap: 'wrap',
+    flexDirection: "row",
+    flexWrap: "wrap",
     gap: spacing.sm,
   },
   photoSlot: {
@@ -926,31 +1083,31 @@ const styles = StyleSheet.create({
     aspectRatio: 3 / 4,
     backgroundColor: colors.backgroundCard,
     borderRadius: borderRadius.lg,
-    overflow: 'hidden',
+    overflow: "hidden",
   },
   photoSlotMain: {
     width: (width - spacing.lg * 2 - spacing.md) / 2,
   },
   photoImage: {
-    width: '100%',
-    height: '100%',
+    width: "100%",
+    height: "100%",
   },
   photoOverlay: {
-    position: 'absolute',
+    position: "absolute",
     bottom: 0,
     left: 0,
     right: 0,
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    backgroundColor: "rgba(0,0,0,0.5)",
     paddingVertical: spacing.xs,
-    alignItems: 'center',
+    alignItems: "center",
   },
   photoPlaceholder: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     borderWidth: 2,
     borderColor: colors.border,
-    borderStyle: 'dashed',
+    borderStyle: "dashed",
     borderRadius: borderRadius.lg,
   },
   photoMainText: {
@@ -959,7 +1116,7 @@ const styles = StyleSheet.create({
     marginTop: spacing.xs,
   },
   mainBadge: {
-    position: 'absolute',
+    position: "absolute",
     top: spacing.xs,
     left: spacing.xs,
     backgroundColor: colors.primary,
@@ -988,12 +1145,12 @@ const styles = StyleSheet.create({
     color: colors.text,
     fontSize: fontSize.md,
     minHeight: 100,
-    textAlignVertical: 'top',
+    textAlignVertical: "top",
   },
   bioCount: {
     color: colors.textMuted,
     fontSize: fontSize.xs,
-    textAlign: 'right',
+    textAlign: "right",
     marginTop: spacing.xs,
   },
   footer: {
@@ -1001,8 +1158,8 @@ const styles = StyleSheet.create({
     paddingBottom: spacing.xxl,
   },
   loginLink: {
-    flexDirection: 'row',
-    justifyContent: 'center',
+    flexDirection: "row",
+    justifyContent: "center",
     marginTop: spacing.md,
   },
   loginText: {

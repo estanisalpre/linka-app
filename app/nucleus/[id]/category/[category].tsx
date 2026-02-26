@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import {
   View,
   Text,
@@ -9,12 +9,17 @@ import {
   TextInput,
   KeyboardAvoidingView,
   Platform,
+  Animated,
 } from "react-native";
 import { useLocalSearchParams, useRouter, Stack } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useNucleusStore } from "../../../../src/store/nucleus.store";
-import { getSocket } from "../../../../src/services/socket";
+import {
+  getSocket,
+  joinConnection,
+  leaveConnection,
+} from "../../../../src/services/socket";
 import {
   colors,
   fontSize,
@@ -75,11 +80,15 @@ export default function CategoryQuestionsScreen() {
   const [selectedChoice, setSelectedChoice] = useState<string | null>(null);
   const [rankingOrder, setRankingOrder] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const dotsFlashAnim = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
-    if (id && category) {
-      loadCategoryQuestions(id, category);
-    }
+    if (!id || !category) return;
+    loadCategoryQuestions(id, category);
+    joinConnection(id);
+    return () => {
+      leaveConnection(id);
+    };
   }, [id, category]);
 
   useEffect(() => {
@@ -111,6 +120,19 @@ export default function CategoryQuestionsScreen() {
     const handleNucleusUpdated = (data: { connectionId: string }) => {
       if (data.connectionId === id) {
         loadCategoryQuestions(id, category);
+        // Flash the progress dots to signal the other user answered
+        Animated.sequence([
+          Animated.timing(dotsFlashAnim, {
+            toValue: 1.15,
+            duration: 180,
+            useNativeDriver: true,
+          }),
+          Animated.timing(dotsFlashAnim, {
+            toValue: 1,
+            duration: 300,
+            useNativeDriver: true,
+          }),
+        ]).start();
       }
     };
 
@@ -487,7 +509,12 @@ export default function CategoryQuestionsScreen() {
               {category}
             </Text>
           </View>
-          <View style={styles.progressDots}>
+          <Animated.View
+            style={[
+              styles.progressDots,
+              { transform: [{ scale: dotsFlashAnim }] },
+            ]}
+          >
             {currentCategory.questions.map((q, i) => (
               <View
                 key={i}
@@ -507,7 +534,7 @@ export default function CategoryQuestionsScreen() {
                 ]}
               />
             ))}
-          </View>
+          </Animated.View>
           <View style={styles.progressCountGroup}>
             <Text style={styles.progressText}>
               {answeredCount}/{totalQuestions}

@@ -20,7 +20,11 @@ import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { ProgressRing, GlobalHeader } from "../../../src/components";
 import { useNucleusStore } from "../../../src/store/nucleus.store";
-import { getSocket } from "../../../src/services/socket";
+import {
+  getSocket,
+  joinConnection,
+  leaveConnection,
+} from "../../../src/services/socket";
 import { connectionApi } from "../../../src/services/api";
 import {
   colors,
@@ -71,6 +75,7 @@ export default function NucleusScreen() {
   const router = useRouter();
   const { overview, isLoading, loadOverview, clearNucleus } = useNucleusStore();
   const progressAnim = useRef(new Animated.Value(0)).current;
+  const updateFlashAnim = useRef(new Animated.Value(1)).current;
   const [animatedProgress, setAnimatedProgress] = useState(0);
   const [dissolveModalVisible, setDissolveModalVisible] = useState(false);
   const [dissolveReason, setDissolveReason] = useState("");
@@ -102,22 +107,31 @@ export default function NucleusScreen() {
   };
 
   useEffect(() => {
-    if (id) {
-      loadOverview(id);
-    }
-    return () => clearNucleus();
+    if (!id) return;
+    loadOverview(id);
+    joinConnection(id);
+    return () => {
+      clearNucleus();
+      leaveConnection(id);
+    };
   }, [id]);
 
-  // Animate progress value whenever it changes
+  // Drive animatedProgress smoothly during Animated.timing
+  useEffect(() => {
+    const listenerId = progressAnim.addListener(({ value }) => {
+      setAnimatedProgress(Math.round(value));
+    });
+    return () => progressAnim.removeListener(listenerId);
+  }, []);
+
+  // Animate progress ring when value changes
   useEffect(() => {
     if (overview?.connection.progress !== undefined) {
-      const targetProgress = overview.connection.progress;
       Animated.timing(progressAnim, {
-        toValue: targetProgress,
+        toValue: overview.connection.progress,
         duration: 800,
         useNativeDriver: false,
       }).start();
-      setAnimatedProgress(targetProgress);
     }
   }, [overview?.connection.progress]);
 
@@ -130,6 +144,19 @@ export default function NucleusScreen() {
     const handleNucleusUpdated = (data: { connectionId: string }) => {
       if (data.connectionId === id) {
         loadOverview(id);
+        // Pulse the progress ring to signal new data from the other user
+        Animated.sequence([
+          Animated.timing(updateFlashAnim, {
+            toValue: 0.93,
+            duration: 150,
+            useNativeDriver: true,
+          }),
+          Animated.timing(updateFlashAnim, {
+            toValue: 1,
+            duration: 350,
+            useNativeDriver: true,
+          }),
+        ]).start();
       }
     };
 
@@ -220,11 +247,13 @@ export default function NucleusScreen() {
           style={styles.progressHeader}
         >
           <View style={styles.progressContent}>
-            <ProgressRing
-              progress={connection.progress}
-              size={100}
-              strokeWidth={8}
-            />
+            <Animated.View style={{ transform: [{ scale: updateFlashAnim }] }}>
+              <ProgressRing
+                progress={animatedProgress}
+                size={100}
+                strokeWidth={8}
+              />
+            </Animated.View>
             <View style={styles.progressInfo}>
               <Text style={styles.progressTitle}>Progreso del Núcleo</Text>
               <Text style={styles.progressPercentage}>
@@ -552,16 +581,7 @@ export default function NucleusScreen() {
             </View>
           </TouchableOpacity>
 
-          {/* Dissolve Button */}
-          <TouchableOpacity
-            style={styles.dissolveButton}
-            onPress={() => setDissolveModalVisible(true)}
-          >
-            <Ionicons name="nuclear" size={18} color={colors.error} />
-            <Text style={styles.dissolveButtonText}>Disolver núcleo</Text>
-          </TouchableOpacity>
-
-          {/* Places Section */}
+          {/* Places Section */}}
           <TouchableOpacity
             style={styles.section}
             onPress={() => router.push(`/nucleus/${id}/places`)}
@@ -653,6 +673,15 @@ export default function NucleusScreen() {
                 </Text>
               </View>
             )}
+          </TouchableOpacity>
+
+          {/* Dissolve Button */}
+          <TouchableOpacity
+            style={styles.dissolveButton}
+            onPress={() => setDissolveModalVisible(true)}
+          >
+            <Ionicons name="nuclear" size={18} color={colors.error} />
+            <Text style={styles.dissolveButtonText}>Disolver núcleo</Text>
           </TouchableOpacity>
         </View>
       </ScrollView>

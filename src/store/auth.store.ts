@@ -26,6 +26,7 @@ interface AuthState {
   error: string | null;
 
   // Actions
+  updateUser: (updatedUser: Partial<User>) => void;
   login: (email: string, password: string) => Promise<boolean>;
   register: (data: {
     email: string;
@@ -128,6 +129,11 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       set({ isLoading: false, isAuthenticated: false });
     }
   },
+
+  updateUser: (updatedUser: Partial<User>) =>
+    set((state) => ({
+      user: state.user ? { ...state.user, ...updatedUser } : state.user,
+    })),
 
   clearError: () => set({ error: null }),
 }));

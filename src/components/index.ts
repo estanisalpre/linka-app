@@ -7,4 +7,5 @@ export { MissionCard } from "./MissionCard";
 export { VotingCard } from "./VotingCard";
 export { Modal } from "./Modal";
 export { GlobalHeader } from "./GlobalHeader";
+export { InterestsPicker } from "./InterestsPicker";
 export type { ModalType } from "./Modal";

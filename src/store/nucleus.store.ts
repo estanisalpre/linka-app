@@ -190,21 +190,10 @@ export const useNucleusStore = create<NucleusState>((set, get) => ({
     prompt: string,
   ) => {
     try {
-      const formData = new FormData();
-      formData.append("photo", {
-        uri: photoUri,
-        type: "image/jpeg",
-        name: "photo.jpg",
-      } as any);
-      formData.append("prompt", prompt);
-
-      const result = await api.post(
-        `/nucleus/${connectionId}/photos`,
-        formData,
-        {
-          headers: { "Content-Type": "multipart/form-data" },
-        },
-      );
+      const result = await api.post(`/nucleus/${connectionId}/photos`, {
+        photoUrl: photoUri,
+        prompt,
+      });
 
       // Reload overview for updated progress
       await get().loadOverview(connectionId);
@@ -223,22 +212,11 @@ export const useNucleusStore = create<NucleusState>((set, get) => ({
     prompt: string,
   ) => {
     try {
-      const formData = new FormData();
-      formData.append("audio", {
-        uri: audioUri,
-        type: "audio/m4a",
-        name: "voice.m4a",
-      } as any);
-      formData.append("duration", duration.toString());
-      formData.append("prompt", prompt);
-
-      const result = await api.post(
-        `/nucleus/${connectionId}/voice`,
-        formData,
-        {
-          headers: { "Content-Type": "multipart/form-data" },
-        },
-      );
+      const result = await api.post(`/nucleus/${connectionId}/voice`, {
+        audioUrl: audioUri,
+        duration,
+        prompt,
+      });
 
       // Reload overview for updated progress
       await get().loadOverview(connectionId);

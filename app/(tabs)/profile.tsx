@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import {
   View,
   Text,
@@ -6,13 +6,19 @@ import {
   Image,
   ScrollView,
   TouchableOpacity,
+  ActivityIndicator,
+  Alert,
+  TextInput,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
-import { GlobalHeader } from "../../src/components";
+import * as ImagePicker from "expo-image-picker";
+import { GlobalHeader, InterestsPicker } from "../../src/components";
 import { useAuthStore } from "../../src/store/auth.store";
+import { userApi } from "../../src/services/api";
+import { ALL_INTERESTS } from "../../src/utils/interests";
 import {
   colors,
   fontSize,
@@ -23,7 +29,15 @@ import {
 } from "../../src/utils/theme";
 
 export default function ProfileScreen() {
-  const { user } = useAuthStore();
+  const { user, updateUser } = useAuthStore();
+  const [uploadingMain, setUploadingMain] = useState(false);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const [editingBio, setEditingBio] = useState(false);
+  const [bioText, setBioText] = useState("");
+  const [savingBio, setSavingBio] = useState(false);
+  const [editingInterests, setEditingInterests] = useState(false);
+  const [interestsDraft, setInterestsDraft] = useState<string[]>([]);
+  const [savingInterests, setSavingInterests] = useState(false);
 
   if (!user) return null;
 
@@ -43,6 +57,93 @@ export default function ProfileScreen() {
   };
 
   const age = calculateAge(user.birthDate);
+
+  const startEditingBio = () => {
+    setBioText(user.bio || "");
+    setEditingBio(true);
+  };
+
+  const saveInterests = async () => {
+    setSavingInterests(true);
+    try {
+      const response = await userApi.updateProfile({
+        interests: interestsDraft,
+      });
+      updateUser({ interests: response.data.interests });
+      setEditingInterests(false);
+    } catch (error: any) {
+      Alert.alert(
+        "Error",
+        error.response?.data?.error || "No se pudo guardar los intereses",
+      );
+    } finally {
+      setSavingInterests(false);
+    }
+  };
+
+  const saveBio = async () => {
+    setSavingBio(true);
+    try {
+      const response = await userApi.updateProfile({ bio: bioText });
+      updateUser({ bio: response.data.bio });
+      setEditingBio(false);
+    } catch (error: any) {
+      Alert.alert(
+        "Error",
+        error.response?.data?.error || "No se pudo guardar la bio",
+      );
+    } finally {
+      setSavingBio(false);
+    }
+  };
+
+  const pickAndUpload = async (position?: number) => {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== "granted") {
+      Alert.alert(
+        "Permiso requerido",
+        "Necesitamos acceso a tus fotos para continuar.",
+      );
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.8,
+    });
+
+    if (result.canceled || !result.assets[0]) return;
+
+    const uri = result.assets[0].uri;
+    const isMain = position === 0;
+    if (isMain) setUploadingMain(true);
+    else setUploadingPhoto(true);
+
+    try {
+      const newPhotos = [...user.photos];
+      if (position !== undefined && position >= 0) {
+        newPhotos[position] = uri;
+      } else {
+        if (newPhotos.length >= 5) {
+          Alert.alert("Límite", "Máximo 5 fotos permitidas");
+          return;
+        }
+        newPhotos.push(uri);
+      }
+      const response = await userApi.updateProfile({ photos: newPhotos });
+      updateUser({ photos: response.data.photos });
+    } catch (error: any) {
+      Alert.alert(
+        "Error",
+        error.response?.data?.error || "No se pudo guardar la foto",
+      );
+    } finally {
+      if (isMain) setUploadingMain(false);
+      else setUploadingPhoto(false);
+    }
+  };
 
   return (
     <SafeAreaView style={styles.container}>
@@ -84,8 +185,16 @@ export default function ProfileScreen() {
           >
             <View style={styles.avatarContainer}>
               <Image source={{ uri: mainPhoto }} style={styles.avatar} />
-              <TouchableOpacity style={styles.editAvatarButton}>
-                <Ionicons name="camera" size={16} color={colors.text} />
+              <TouchableOpacity
+                style={styles.editAvatarButton}
+                onPress={() => pickAndUpload(0)}
+                disabled={uploadingMain}
+              >
+                {uploadingMain ? (
+                  <ActivityIndicator size="small" color={colors.text} />
+                ) : (
+                  <Ionicons name="camera" size={16} color={colors.text} />
+                )}
               </TouchableOpacity>
             </View>
             <Text style={styles.name}>
@@ -101,13 +210,6 @@ export default function ProfileScreen() {
                 <Text style={styles.location}>{user.location}</Text>
               </View>
             )}
-            <TouchableOpacity
-              style={styles.editProfileButton}
-              onPress={() => router.push("/settings/preferences" as any)}
-            >
-              <Ionicons name="pencil" size={14} color={colors.text} />
-              <Text style={styles.editProfileText}>Editar perfil</Text>
-            </TouchableOpacity>
           </LinearGradient>
         </View>
 
@@ -115,16 +217,53 @@ export default function ProfileScreen() {
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>Sobre mi</Text>
-            <TouchableOpacity
-              onPress={() => router.push("/settings/preferences" as any)}
-            >
-              <Ionicons name="pencil" size={18} color={colors.primary} />
-            </TouchableOpacity>
+            {editingBio ? (
+              <View style={styles.bioActions}>
+                <TouchableOpacity
+                  onPress={() => setEditingBio(false)}
+                  style={styles.bioCancelButton}
+                  disabled={savingBio}
+                >
+                  <Text style={styles.bioCancelText}>Cancelar</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={saveBio}
+                  style={styles.bioSaveButton}
+                  disabled={savingBio}
+                >
+                  {savingBio ? (
+                    <ActivityIndicator size="small" color="#fff" />
+                  ) : (
+                    <Text style={styles.bioSaveText}>Guardar</Text>
+                  )}
+                </TouchableOpacity>
+              </View>
+            ) : (
+              <TouchableOpacity onPress={startEditingBio}>
+                <Ionicons name="pencil" size={18} color={colors.primary} />
+              </TouchableOpacity>
+            )}
           </View>
-          <Text style={styles.bio}>
-            {user.bio ||
-              "Aun no has escrito tu bio. Cuentale al mundo sobre ti!"}
-          </Text>
+          {editingBio ? (
+            <View>
+              <TextInput
+                style={styles.bioInput}
+                value={bioText}
+                onChangeText={setBioText}
+                multiline
+                maxLength={2000}
+                placeholder="Cuentale al mundo sobre ti..."
+                placeholderTextColor={colors.textMuted}
+                autoFocus
+              />
+              <Text style={styles.bioCharCount}>{bioText.length}/2000</Text>
+            </View>
+          ) : (
+            <Text style={styles.bio}>
+              {user.bio ||
+                "Aun no has escrito tu bio. Cuentale al mundo sobre ti!"}
+            </Text>
+          )}
         </View>
 
         {/* Photos section */}
@@ -132,24 +271,108 @@ export default function ProfileScreen() {
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>Mis fotos</Text>
             <TouchableOpacity
-              onPress={() => router.push("/settings/preferences" as any)}
+              onPress={() => pickAndUpload()}
+              disabled={uploadingPhoto || user.photos.length >= 5}
             >
-              <Ionicons name="add-circle" size={22} color={colors.primary} />
+              {uploadingPhoto ? (
+                <ActivityIndicator size="small" color={colors.primary} />
+              ) : (
+                <Ionicons name="add-circle" size={22} color={colors.primary} />
+              )}
             </TouchableOpacity>
           </View>
           <View style={styles.photosGrid}>
             {user.photos.map((photo, index) => (
-              <Image key={index} source={{ uri: photo }} style={styles.photo} />
+              <TouchableOpacity
+                key={index}
+                style={styles.photo}
+                onPress={() => pickAndUpload(index)}
+              >
+                <Image source={{ uri: photo }} style={styles.photoImage} />
+                <View style={styles.photoEditOverlay}>
+                  <Ionicons name="pencil" size={14} color="#fff" />
+                </View>
+              </TouchableOpacity>
             ))}
-            {user.photos.length < 6 && (
+            {user.photos.length < 5 && (
               <TouchableOpacity
                 style={styles.addPhotoButton}
-                onPress={() => router.push("/settings/preferences" as any)}
+                onPress={() => pickAndUpload()}
+                disabled={uploadingPhoto}
               >
-                <Ionicons name="add" size={32} color={colors.textMuted} />
+                {uploadingPhoto ? (
+                  <ActivityIndicator size="small" color={colors.textMuted} />
+                ) : (
+                  <Ionicons name="add" size={32} color={colors.textMuted} />
+                )}
               </TouchableOpacity>
             )}
           </View>
+        </View>
+
+        {/* Interests section */}
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>Intereses</Text>
+            {editingInterests ? (
+              <View style={styles.bioActions}>
+                <TouchableOpacity
+                  onPress={() => setEditingInterests(false)}
+                  style={styles.bioCancelButton}
+                  disabled={savingInterests}
+                >
+                  <Text style={styles.bioCancelText}>Cancelar</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={saveInterests}
+                  style={styles.bioSaveButton}
+                  disabled={savingInterests}
+                >
+                  {savingInterests ? (
+                    <ActivityIndicator size="small" color="#fff" />
+                  ) : (
+                    <Text style={styles.bioSaveText}>Guardar</Text>
+                  )}
+                </TouchableOpacity>
+              </View>
+            ) : (
+              <TouchableOpacity
+                onPress={() => {
+                  setInterestsDraft(user.interests ?? []);
+                  setEditingInterests(true);
+                }}
+              >
+                <Ionicons name="pencil" size={18} color={colors.primary} />
+              </TouchableOpacity>
+            )}
+          </View>
+          {editingInterests ? (
+            <InterestsPicker
+              selected={interestsDraft}
+              onChange={setInterestsDraft}
+            />
+          ) : user.interests && user.interests.length > 0 ? (
+            <View style={styles.interestsDisplay}>
+              {user.interests.map((val) => {
+                const known = ALL_INTERESTS.find((i) => i.value === val);
+                const label =
+                  known?.label ?? val.replace("custom_", "").replace(/_/g, " ");
+                const icon = known?.icon ?? "star";
+                return (
+                  <View key={val} style={styles.interestChip}>
+                    <Ionicons
+                      name={icon as any}
+                      size={14}
+                      color={colors.primary}
+                    />
+                    <Text style={styles.interestChipText}>{label}</Text>
+                  </View>
+                );
+              })}
+            </View>
+          ) : (
+            <Text style={styles.bio}>Aun no has agregado intereses.</Text>
+          )}
         </View>
 
         {/* Legal & Support section */}
@@ -304,21 +527,6 @@ const styles = StyleSheet.create({
     color: "rgba(255,255,255,0.8)",
     fontSize: fontSize.sm,
   },
-  editProfileButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.xs,
-    marginTop: spacing.md,
-    backgroundColor: "rgba(255,255,255,0.2)",
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    borderRadius: borderRadius.full,
-  },
-  editProfileText: {
-    color: colors.text,
-    fontSize: fontSize.sm,
-    fontWeight: fontWeight.medium,
-  },
   section: {
     paddingHorizontal: spacing.lg,
     marginBottom: spacing.lg,
@@ -339,6 +547,50 @@ const styles = StyleSheet.create({
     fontSize: fontSize.md,
     lineHeight: 24,
   },
+  bioInput: {
+    color: colors.text,
+    fontSize: fontSize.md,
+    lineHeight: 24,
+    backgroundColor: colors.backgroundCard,
+    borderRadius: borderRadius.md,
+    borderWidth: 1,
+    borderColor: colors.primary,
+    padding: spacing.md,
+    minHeight: 100,
+    textAlignVertical: "top",
+  },
+  bioCharCount: {
+    color: colors.textMuted,
+    fontSize: fontSize.xs,
+    textAlign: "right",
+    marginTop: spacing.xs,
+  },
+  bioActions: {
+    flexDirection: "row",
+    gap: spacing.sm,
+    alignItems: "center",
+  },
+  bioCancelButton: {
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
+  },
+  bioCancelText: {
+    color: colors.textMuted,
+    fontSize: fontSize.sm,
+  },
+  bioSaveButton: {
+    backgroundColor: colors.primary,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs,
+    borderRadius: borderRadius.sm,
+    minWidth: 70,
+    alignItems: "center",
+  },
+  bioSaveText: {
+    color: colors.text,
+    fontSize: fontSize.sm,
+    fontWeight: fontWeight.semibold,
+  },
   photosGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
@@ -348,6 +600,19 @@ const styles = StyleSheet.create({
     width: "31%",
     aspectRatio: 1,
     borderRadius: borderRadius.md,
+    overflow: "hidden",
+  },
+  photoImage: {
+    width: "100%",
+    height: "100%",
+  },
+  photoEditOverlay: {
+    position: "absolute",
+    bottom: 4,
+    right: 4,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    borderRadius: 10,
+    padding: 3,
   },
   addPhotoButton: {
     width: "31%",
@@ -359,6 +624,26 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: colors.border,
     borderStyle: "dashed",
+  },
+  interestsDisplay: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: spacing.sm,
+  },
+  interestChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
+    borderRadius: borderRadius.full,
+    backgroundColor: colors.primary + "20",
+    borderWidth: 1,
+    borderColor: colors.primary + "50",
+  },
+  interestChipText: {
+    color: colors.primary,
+    fontSize: fontSize.sm,
   },
   settingItem: {
     flexDirection: "row",

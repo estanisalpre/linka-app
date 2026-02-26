@@ -60,6 +60,7 @@ export const userApi = {
     photos?: string[];
     location?: string;
     interestedIn?: string[];
+    interests?: string[];
   }) => api.put("/users/profile", data),
 
   discover: (limit = 20, offset = 0, portal?: string) => {
