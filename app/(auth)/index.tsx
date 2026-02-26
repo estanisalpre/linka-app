@@ -1,12 +1,13 @@
-import React from 'react';
-import { View, Text, StyleSheet, Dimensions } from 'react-native';
-import { router } from 'expo-router';
-import { LinearGradient } from 'expo-linear-gradient';
-import { Ionicons } from '@expo/vector-icons';
-import { Button } from '../../src/components';
-import { colors, fontSize, fontWeight, spacing } from '../../src/utils/theme';
+import React from "react";
+import { View, Text, StyleSheet, Dimensions, Image } from "react-native";
+import { router } from "expo-router";
+import { LinearGradient } from "expo-linear-gradient";
+import { Ionicons } from "@expo/vector-icons";
+import { Button } from "../../src/components";
+import { LogoLight } from "../../src/assets/logo";
+import { colors, fontSize, fontWeight, spacing } from "../../src/utils/theme";
 
-const { height } = Dimensions.get('window');
+const { height } = Dimensions.get("window");
 
 export default function WelcomeScreen() {
   return (
@@ -16,15 +17,11 @@ export default function WelcomeScreen() {
     >
       {/* Hero Section */}
       <View style={styles.hero}>
-        <View style={styles.logoContainer}>
-          <LinearGradient
-            colors={[colors.primary, colors.secondary]}
-            style={styles.logoGradient}
-          >
-            <Ionicons name="heart" size={48} color={colors.text} />
-          </LinearGradient>
-        </View>
-        <Text style={styles.title}>Linka</Text>
+        <Image
+          source={LogoLight}
+          style={styles.logoImage}
+          resizeMode="contain"
+        />
         <Text style={styles.subtitle}>Conexiones que se construyen</Text>
       </View>
 
@@ -44,7 +41,11 @@ export default function WelcomeScreen() {
 
         <View style={styles.feature}>
           <View style={styles.featureIcon}>
-            <Ionicons name="game-controller" size={24} color={colors.secondary} />
+            <Ionicons
+              name="game-controller"
+              size={24}
+              color={colors.secondary}
+            />
           </View>
           <View style={styles.featureText}>
             <Text style={styles.featureTitle}>Misiones juntos</Text>
@@ -71,13 +72,13 @@ export default function WelcomeScreen() {
       <View style={styles.actions}>
         <Button
           title="Crear cuenta"
-          onPress={() => router.push('/(auth)/register')}
+          onPress={() => router.push("/(auth)/register")}
           fullWidth
           size="lg"
         />
         <Button
           title="Ya tengo cuenta"
-          onPress={() => router.push('/(auth)/login')}
+          onPress={() => router.push("/(auth)/login")}
           variant="outline"
           fullWidth
           size="lg"
@@ -93,25 +94,21 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
   },
   hero: {
-    alignItems: 'center',
+    alignItems: "center",
     paddingTop: height * 0.1,
     paddingBottom: spacing.xl,
   },
-  logoContainer: {
+  logoImage: {
+    width: 180,
+    height: 120,
     marginBottom: spacing.lg,
-  },
-  logoGradient: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    justifyContent: 'center',
-    alignItems: 'center',
   },
   title: {
     color: colors.text,
-    fontSize: 48,
-    fontWeight: fontWeight.bold,
+    fontSize: 52,
+    fontFamily: "CormorantGaramond_700Bold",
     marginBottom: spacing.xs,
+    letterSpacing: 1,
   },
   subtitle: {
     color: colors.textSecondary,
@@ -119,12 +116,12 @@ const styles = StyleSheet.create({
   },
   features: {
     flex: 1,
-    justifyContent: 'center',
+    justifyContent: "center",
     gap: spacing.lg,
   },
   feature: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     backgroundColor: colors.backgroundCard,
     borderRadius: 16,
     padding: spacing.md,
@@ -135,8 +132,8 @@ const styles = StyleSheet.create({
     height: 48,
     borderRadius: 24,
     backgroundColor: colors.backgroundLight,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
   },
   featureText: {
     flex: 1,

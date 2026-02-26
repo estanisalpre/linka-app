@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -8,15 +8,22 @@ import {
   Image,
   ActivityIndicator,
   RefreshControl,
-} from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { useLocalSearchParams, router } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
-import { userApi } from '../../src/services/api';
-import { useConnectionStore } from '../../src/store/connection.store';
-import { useAuthStore } from '../../src/store/auth.store';
-import { Modal } from '../../src/components';
-import { colors, fontSize, fontWeight, spacing, borderRadius } from '../../src/utils/theme';
+  Alert,
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { useLocalSearchParams, router } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
+import { userApi } from "../../src/services/api";
+import { useConnectionStore } from "../../src/store/connection.store";
+import { useAuthStore } from "../../src/store/auth.store";
+import { Modal, GlobalHeader } from "../../src/components";
+import {
+  colors,
+  fontSize,
+  fontWeight,
+  spacing,
+  borderRadius,
+} from "../../src/utils/theme";
 
 interface PortalUser {
   id: string;
@@ -29,13 +36,40 @@ interface PortalUser {
   lastActive: Date;
 }
 
-const PORTAL_INFO: Record<string, { title: string; color: string; icon: string }> = {
-  honesty: { title: 'Conversaciones honestas', color: '#E91E63', icon: 'heart-outline' },
-  slow: { title: 'Construir algo lento', color: '#9C27B0', icon: 'time-outline' },
-  curious: { title: 'Curiosos sin prisa', color: '#2196F3', icon: 'sparkles-outline' },
-  deep: { title: 'Conexiones profundas', color: '#00BCD4', icon: 'water-outline' },
-  adventure: { title: 'Espíritus aventureros', color: '#FF9800', icon: 'compass-outline' },
-  creative: { title: 'Mentes creativas', color: '#4CAF50', icon: 'color-palette-outline' },
+const PORTAL_INFO: Record<
+  string,
+  { title: string; color: string; icon: string }
+> = {
+  honesty: {
+    title: "Conversaciones honestas",
+    color: "#E91E63",
+    icon: "heart-outline",
+  },
+  slow: {
+    title: "Construir algo lento",
+    color: "#9C27B0",
+    icon: "time-outline",
+  },
+  curious: {
+    title: "Curiosos sin prisa",
+    color: "#2196F3",
+    icon: "sparkles-outline",
+  },
+  deep: {
+    title: "Conexiones profundas",
+    color: "#00BCD4",
+    icon: "water-outline",
+  },
+  adventure: {
+    title: "Espíritus aventureros",
+    color: "#FF9800",
+    icon: "compass-outline",
+  },
+  creative: {
+    title: "Mentes creativas",
+    color: "#4CAF50",
+    icon: "color-palette-outline",
+  },
 };
 
 // Calculate age from birthDate
@@ -52,11 +86,11 @@ const calculateAge = (birthDate: string): number => {
 
 // Get heat color based on activity level (0-100)
 const getHeatColor = (heat: number): string => {
-  if (heat >= 80) return '#FF1744'; // Very hot - bright red
-  if (heat >= 60) return '#FF5722'; // Hot - orange-red
-  if (heat >= 40) return '#FF9800'; // Warm - orange
-  if (heat >= 20) return '#FFC107'; // Cool - yellow
-  return '#9E9E9E'; // Cold - gray
+  if (heat >= 80) return "#FF1744"; // Very hot - bright red
+  if (heat >= 60) return "#FF5722"; // Hot - orange-red
+  if (heat >= 40) return "#FF9800"; // Warm - orange
+  if (heat >= 20) return "#FFC107"; // Cool - yellow
+  return "#9E9E9E"; // Cold - gray
 };
 
 // Get heat border width based on activity
@@ -74,26 +108,36 @@ export default function PortalScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [selectedUser, setSelectedUser] = useState<PortalUser | null>(null);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
-  const [connectedUserName, setConnectedUserName] = useState('');
-  const { initiateConnection, isLoading: isConnecting } = useConnectionStore();
+  const [connectedUserName, setConnectedUserName] = useState("");
+  const [activityModal, setActivityModal] = useState(false);
+  const {
+    initiateConnection,
+    connections,
+    isLoading: isConnecting,
+  } = useConnectionStore();
   const { user: currentUser } = useAuthStore();
 
-  const portalInfo = PORTAL_INFO[id || 'honesty'];
+  const portalInfo = PORTAL_INFO[id || "honesty"];
 
   const loadUsers = async () => {
     try {
-      const response = await userApi.discover(50, 0);
+      // Pass portal ID to filter users by portal
+      const response = await userApi.discover(50, 0, id);
       // Add mock heat values for now (in production, this would come from the backend)
-      const usersWithHeat: PortalUser[] = response.data.map((user: any, index: number) => ({
-        ...user,
-        heat: Math.max(10, 100 - index * 8 + Math.random() * 20), // Simulate activity-based sorting
-        lastActive: new Date(Date.now() - Math.random() * 72 * 60 * 60 * 1000), // Random within 72h
-      }));
+      const usersWithHeat: PortalUser[] = response.data.map(
+        (user: any, index: number) => ({
+          ...user,
+          heat: Math.max(10, 100 - index * 8 + Math.random() * 20), // Simulate activity-based sorting
+          lastActive: new Date(
+            Date.now() - Math.random() * 72 * 60 * 60 * 1000,
+          ), // Random within 72h
+        }),
+      );
       // Sort by heat (most active first)
       usersWithHeat.sort((a, b) => b.heat - a.heat);
       setUsers(usersWithHeat);
     } catch (error) {
-      console.error('Error loading users:', error);
+      console.error("Error loading users:", error);
     } finally {
       setIsLoading(false);
       setRefreshing(false);
@@ -122,7 +166,7 @@ export default function PortalScreen() {
   const handleModalClose = () => {
     setShowSuccessModal(false);
     // Navigate to connections tab to see the pending connection
-    router.push('/(tabs)/connections');
+    router.push("/(tabs)/connections");
   };
 
   const handleUserPress = (user: PortalUser) => {
@@ -141,37 +185,66 @@ export default function PortalScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
+    <SafeAreaView style={styles.container} edges={["top"]}>
+      {/* Global Header with notifications & settings */}
+      <GlobalHeader notificationCount={0} />
+
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={() => router.back()}
+        >
           <Ionicons name="arrow-back" size={24} color={colors.text} />
         </TouchableOpacity>
         <View style={styles.headerContent}>
-          <View style={[styles.portalBadge, { backgroundColor: portalInfo.color + '20' }]}>
-            <Ionicons name={portalInfo.icon as any} size={20} color={portalInfo.color} />
+          <View
+            style={[
+              styles.portalBadge,
+              { backgroundColor: portalInfo.color + "20" },
+            ]}
+          >
+            <Ionicons
+              name={portalInfo.icon as any}
+              size={20}
+              color={portalInfo.color}
+            />
           </View>
           <View>
             <Text style={styles.headerTitle}>{portalInfo.title}</Text>
-            <Text style={styles.headerSubtitle}>{users.length} personas aquí</Text>
+            <Text style={styles.headerSubtitle}>
+              {users.length} personas aquí
+            </Text>
           </View>
         </View>
       </View>
 
       {/* Heat Legend */}
       <View style={styles.legendContainer}>
-        <Text style={styles.legendLabel}>Actividad:</Text>
+        <View style={styles.legendLabelRow}>
+          <Text style={styles.legendLabel}>Actividad:</Text>
+          <TouchableOpacity
+            onPress={() => setActivityModal(true)}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          >
+            <Ionicons
+              name="help-circle-outline"
+              size={16}
+              color={colors.textMuted}
+            />
+          </TouchableOpacity>
+        </View>
         <View style={styles.legendItems}>
           <View style={styles.legendItem}>
-            <View style={[styles.legendDot, { backgroundColor: '#FF1744' }]} />
+            <View style={[styles.legendDot, { backgroundColor: "#FF1744" }]} />
             <Text style={styles.legendText}>Muy activo</Text>
           </View>
           <View style={styles.legendItem}>
-            <View style={[styles.legendDot, { backgroundColor: '#FF9800' }]} />
+            <View style={[styles.legendDot, { backgroundColor: "#FF9800" }]} />
             <Text style={styles.legendText}>Activo</Text>
           </View>
           <View style={styles.legendItem}>
-            <View style={[styles.legendDot, { backgroundColor: '#9E9E9E' }]} />
+            <View style={[styles.legendDot, { backgroundColor: "#9E9E9E" }]} />
             <Text style={styles.legendText}>Menos activo</Text>
           </View>
         </View>
@@ -198,10 +271,7 @@ export default function PortalScreen() {
           return (
             <TouchableOpacity
               key={user.id}
-              style={[
-                styles.userCard,
-                isSelected && styles.userCardSelected,
-              ]}
+              style={[styles.userCard, isSelected && styles.userCardSelected]}
               onPress={() => handleUserPress(user)}
               activeOpacity={0.8}
             >
@@ -224,16 +294,17 @@ export default function PortalScreen() {
                   ]}
                 >
                   <Image
-                    source={{ uri: user.photos[0] || `https://ui-avatars.com/api/?background=252540&color=fff&name=${encodeURIComponent(user.name || 'U')}` }}
+                    source={{
+                      uri:
+                        user.photos[0] ||
+                        `https://ui-avatars.com/api/?background=252540&color=fff&name=${encodeURIComponent(user.name || "U")}`,
+                    }}
                     style={styles.photo}
                   />
                   {/* Heat glow effect */}
                   {user.heat >= 60 && (
                     <View
-                      style={[
-                        styles.heatGlow,
-                        { shadowColor: heatColor },
-                      ]}
+                      style={[styles.heatGlow, { shadowColor: heatColor }]}
                     />
                   )}
                 </View>
@@ -242,16 +313,25 @@ export default function PortalScreen() {
                 <View style={styles.userInfo}>
                   <View style={styles.nameRow}>
                     <Text style={styles.userName}>{user.name}</Text>
-                    <Text style={styles.userAge}>, {calculateAge(user.birthDate)}</Text>
+                    <Text style={styles.userAge}>
+                      , {calculateAge(user.birthDate)}
+                    </Text>
                   </View>
                   {user.location && (
                     <View style={styles.locationRow}>
-                      <Ionicons name="location-outline" size={14} color={colors.textMuted} />
+                      <Ionicons
+                        name="location-outline"
+                        size={14}
+                        color={colors.textMuted}
+                      />
                       <Text style={styles.locationText}>{user.location}</Text>
                     </View>
                   )}
                   {user.bio && (
-                    <Text style={styles.userBio} numberOfLines={isSelected ? 4 : 1}>
+                    <Text
+                      style={styles.userBio}
+                      numberOfLines={isSelected ? 4 : 1}
+                    >
                       {user.bio}
                     </Text>
                   )}
@@ -291,25 +371,69 @@ export default function PortalScreen() {
                     </ScrollView>
                   )}
 
-                  {/* Create connection button */}
+                  {/* View full profile button */}
                   <TouchableOpacity
-                    style={[styles.connectButton, { backgroundColor: portalInfo.color }]}
-                    onPress={() => handleCreateConnection(user)}
-                    disabled={isConnecting}
+                    style={styles.viewProfileButton}
+                    onPress={() => router.push(`/user/${user.id}` as any)}
+                    activeOpacity={0.8}
                   >
-                    {isConnecting ? (
-                      <ActivityIndicator size="small" color="#FFF" />
-                    ) : (
-                      <>
-                        <Ionicons name="add-circle-outline" size={20} color="#FFF" />
-                        <Text style={styles.connectButtonText}>Crear conexión</Text>
-                      </>
-                    )}
+                    <Ionicons name="person" size={16} color={colors.primary} />
+                    <Text style={styles.viewProfileText}>
+                      Ver perfil completo
+                    </Text>
+                    <Ionicons
+                      name="chevron-forward"
+                      size={14}
+                      color={colors.primary}
+                    />
                   </TouchableOpacity>
 
-                  <Text style={styles.connectHint}>
-                    Al crear una conexión, comenzarán las misiones para conocerse
-                  </Text>
+                  {/* Create connection button */}
+                  {connections.some(
+                    (c) => c.otherUser.id === user.id && c.status !== "ENDED",
+                  ) ? (
+                    <View style={styles.alreadyConnectedBadge}>
+                      <Ionicons
+                        name="checkmark-circle"
+                        size={18}
+                        color={colors.success}
+                      />
+                      <Text style={styles.alreadyConnectedText}>
+                        Conexión enviada
+                      </Text>
+                    </View>
+                  ) : (
+                    <>
+                      <TouchableOpacity
+                        style={[
+                          styles.connectButton,
+                          { backgroundColor: portalInfo.color },
+                        ]}
+                        onPress={() => handleCreateConnection(user)}
+                        disabled={isConnecting}
+                      >
+                        {isConnecting ? (
+                          <ActivityIndicator size="small" color="#FFF" />
+                        ) : (
+                          <>
+                            <Ionicons
+                              name="add-circle-outline"
+                              size={20}
+                              color="#FFF"
+                            />
+                            <Text style={styles.connectButtonText}>
+                              Crear conexión
+                            </Text>
+                          </>
+                        )}
+                      </TouchableOpacity>
+
+                      <Text style={styles.connectHint}>
+                        Al crear una conexión, comenzarán las misiones para
+                        conocerse
+                      </Text>
+                    </>
+                  )}
                 </View>
               )}
             </TouchableOpacity>
@@ -318,7 +442,11 @@ export default function PortalScreen() {
 
         {users.length === 0 && (
           <View style={styles.emptyContainer}>
-            <Ionicons name="planet-outline" size={64} color={colors.textMuted} />
+            <Ionicons
+              name="planet-outline"
+              size={64}
+              color={colors.textMuted}
+            />
             <Text style={styles.emptyTitle}>Portal vacío</Text>
             <Text style={styles.emptyText}>
               Aún no hay personas en este portal. ¡Sé el primero!
@@ -326,6 +454,20 @@ export default function PortalScreen() {
           </View>
         )}
       </ScrollView>
+
+      {/* Activity info Modal */}
+      <Modal
+        visible={activityModal}
+        onClose={() => setActivityModal(false)}
+        type="info"
+        title="Niveles de actividad"
+        message={
+          "Muy activo (rojo): conectado en las ultimas 24h\n\nActivo (naranja): conectado en los ultimos 3 dias\n\nMenos activo (gris): sin actividad reciente"
+        }
+        buttonText="Entendido"
+        onButtonPress={() => setActivityModal(false)}
+        dismissOnBackdrop
+      />
 
       {/* Success Modal */}
       <Modal
@@ -349,8 +491,8 @@ const styles = StyleSheet.create({
   },
   loadingContainer: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     gap: spacing.md,
   },
   loadingText: {
@@ -358,8 +500,8 @@ const styles = StyleSheet.create({
     fontSize: fontSize.md,
   },
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.md,
     borderBottomWidth: 1,
@@ -370,21 +512,21 @@ const styles = StyleSheet.create({
     height: 40,
     borderRadius: 20,
     backgroundColor: colors.backgroundCard,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     marginRight: spacing.md,
   },
   headerContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: spacing.md,
   },
   portalBadge: {
     width: 40,
     height: 40,
     borderRadius: borderRadius.md,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
   },
   headerTitle: {
     color: colors.text,
@@ -396,8 +538,8 @@ const styles = StyleSheet.create({
     fontSize: fontSize.sm,
   },
   legendContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.sm,
     backgroundColor: colors.backgroundCard,
@@ -407,13 +549,18 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     fontSize: fontSize.xs,
   },
+  legendLabelRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+  },
   legendItems: {
-    flexDirection: 'row',
+    flexDirection: "row",
     gap: spacing.md,
   },
   legendItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: spacing.xs,
   },
   legendDot: {
@@ -443,13 +590,13 @@ const styles = StyleSheet.create({
     borderColor: colors.primary,
   },
   userRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: spacing.md,
   },
   positionContainer: {
     width: 24,
-    alignItems: 'center',
+    alignItems: "center",
   },
   positionText: {
     fontSize: fontSize.lg,
@@ -459,15 +606,15 @@ const styles = StyleSheet.create({
     width: 64,
     height: 64,
     borderRadius: 32,
-    overflow: 'hidden',
-    position: 'relative',
+    overflow: "hidden",
+    position: "relative",
   },
   photo: {
-    width: '100%',
-    height: '100%',
+    width: "100%",
+    height: "100%",
   },
   heatGlow: {
-    position: 'absolute',
+    position: "absolute",
     top: -2,
     left: -2,
     right: -2,
@@ -482,8 +629,8 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   nameRow: {
-    flexDirection: 'row',
-    alignItems: 'baseline',
+    flexDirection: "row",
+    alignItems: "baseline",
   },
   userName: {
     color: colors.text,
@@ -495,8 +642,8 @@ const styles = StyleSheet.create({
     fontSize: fontSize.md,
   },
   locationRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 2,
     marginTop: 2,
   },
@@ -514,11 +661,11 @@ const styles = StyleSheet.create({
     height: 40,
     backgroundColor: colors.border,
     borderRadius: 3,
-    overflow: 'hidden',
-    justifyContent: 'flex-end',
+    overflow: "hidden",
+    justifyContent: "flex-end",
   },
   heatBar: {
-    width: '100%',
+    width: "100%",
     borderRadius: 3,
   },
   expandedContent: {
@@ -536,28 +683,61 @@ const styles = StyleSheet.create({
     borderRadius: borderRadius.md,
     marginRight: spacing.sm,
   },
+  viewProfileButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: spacing.xs,
+    paddingVertical: spacing.sm,
+    borderRadius: borderRadius.md,
+    borderWidth: 1,
+    borderColor: colors.primary + "60",
+    backgroundColor: colors.primary + "15",
+    marginBottom: spacing.sm,
+  },
+  viewProfileText: {
+    color: colors.primary,
+    fontSize: fontSize.sm,
+    fontWeight: fontWeight.medium,
+  },
   connectButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
     gap: spacing.sm,
     paddingVertical: spacing.md,
     borderRadius: borderRadius.md,
   },
   connectButtonText: {
-    color: '#FFF',
+    color: "#FFF",
     fontSize: fontSize.md,
     fontWeight: fontWeight.semibold,
   },
   connectHint: {
     color: colors.textMuted,
     fontSize: fontSize.xs,
-    textAlign: 'center',
+    textAlign: "center",
     marginTop: spacing.sm,
   },
+  alreadyConnectedBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: spacing.sm,
+    paddingVertical: spacing.md,
+    borderRadius: borderRadius.md,
+    backgroundColor: colors.success + "20",
+    borderWidth: 1,
+    borderColor: colors.success + "60",
+  },
+  alreadyConnectedText: {
+    color: colors.success,
+    fontSize: fontSize.sm,
+    fontWeight: fontWeight.semibold,
+  },
   emptyContainer: {
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     paddingVertical: spacing.xxl,
   },
   emptyTitle: {
@@ -569,7 +749,7 @@ const styles = StyleSheet.create({
   emptyText: {
     color: colors.textSecondary,
     fontSize: fontSize.md,
-    textAlign: 'center',
+    textAlign: "center",
     marginTop: spacing.sm,
   },
 });

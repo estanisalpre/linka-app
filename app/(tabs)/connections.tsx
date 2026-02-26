@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -8,680 +8,625 @@ import {
   ActivityIndicator,
   TouchableOpacity,
   Image,
-} from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { router } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
-import { useConnectionStore } from '../../src/store/connection.store';
-import { colors, fontSize, fontWeight, spacing, borderRadius } from '../../src/utils/theme';
+  Alert,
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { router } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
+import { GlobalHeader } from "../../src/components";
+import { api } from "../../src/services/api";
+import { getSocket, SocketEvents } from "../../src/services/socket";
+import {
+  colors,
+  fontSize,
+  fontWeight,
+  spacing,
+  borderRadius,
+  shadows,
+} from "../../src/utils/theme";
 
-type FilterTab = 'all' | 'similar' | 'later';
+type Tab =
+  | "active"
+  | "whoLikedYou"
+  | "whoYouLiked"
+  | "rejected"
+  | "later"
+  | "dissolved";
 
-// Chat unlock levels based on progress
-const getChatLevel = (progress: number): { level: string; description: string; color: string } => {
-  if (progress >= 70) {
-    return { level: 'Chat completo', description: 'Pueden hablar de todo', color: colors.success };
-  }
-  if (progress >= 50) {
-    return { level: 'Voz y video', description: 'Pueden hacer llamadas', color: '#9C27B0' };
-  }
-  if (progress >= 30) {
-    return { level: 'Chat guiado', description: 'Preguntas sugeridas', color: '#2196F3' };
-  }
-  return { level: 'Bloqueado', description: 'Completen misiones', color: colors.textMuted };
-};
-
-// Get whose turn it is
-const getTurnInfo = (_connection: any): { text: string; isMyTurn: boolean } => {
-  // In production, this would come from the backend based on mission responses
-  const isMyTurn = Math.random() > 0.5; // Mock for now
-  return {
-    text: isMyTurn ? 'Tu turno' : 'Esperando respuesta',
-    isMyTurn,
+interface TransparencyData {
+  whoLikedYou: any[];
+  whoYouLiked: any[];
+  activeMatches: any[];
+  rejections: any[];
+  postponed: any[];
+  cooled: any[];
+  dissolved: any[];
+  stats: {
+    totalLikesReceived: number;
+    totalLikesSent: number;
+    totalActiveMatches: number;
+    totalRejections: number;
+    totalPostponed: number;
+    totalDissolved: number;
   };
-};
-
-// Get compatibility label
-const getCompatibilityLabel = (score: number): { text: string; color: string } => {
-  if (score >= 80) return { text: 'Muy compatible', color: colors.success };
-  if (score >= 60) return { text: 'Compatible', color: colors.primary };
-  if (score >= 40) return { text: 'Algo en comun', color: colors.warning };
-  return { text: 'Diferente', color: colors.textMuted };
-};
-
-interface NucleoCardProps {
-  connection: any;
-  onPress: () => void;
-  showCompatibility?: boolean;
 }
-
-const NucleoCard: React.FC<NucleoCardProps> = ({ connection, onPress, showCompatibility }) => {
-  const { otherUser, progress, temperature, compatibilityScore } = connection;
-  const photo = otherUser?.photos?.[0] || 'https://ui-avatars.com/api/?background=252540&color=fff&name=U';
-  const chatLevel = getChatLevel(progress);
-  const turnInfo = getTurnInfo(connection);
-  const compatibility = getCompatibilityLabel(compatibilityScore || 0);
-
-  const getTemperatureEmoji = () => {
-    switch (temperature) {
-      case 'HOT': return '🔥';
-      case 'WARM': return '☀️';
-      case 'COOL': return '🌤️';
-      case 'COLD': return '❄️';
-      default: return '✨';
-    }
-  };
-
-  return (
-    <TouchableOpacity style={styles.nucleoCard} onPress={onPress} activeOpacity={0.8}>
-      {/* Progress bar at top */}
-      <View style={styles.progressBarContainer}>
-        <View style={[styles.progressBar, { width: `${progress}%` }]} />
-        <Text style={styles.progressText}>{progress}%</Text>
-      </View>
-
-      <View style={styles.nucleoContent}>
-        {/* Photo */}
-        <View style={styles.photoContainer}>
-          <Image source={{ uri: photo }} style={styles.photo} />
-          <Text style={styles.temperatureEmoji}>{getTemperatureEmoji()}</Text>
-        </View>
-
-        {/* Info */}
-        <View style={styles.nucleoInfo}>
-          <Text style={styles.nucleoName}>{otherUser?.name || 'Usuario'}</Text>
-
-          {/* Compatibility score if requested */}
-          {showCompatibility && compatibilityScore > 0 && (
-            <View style={styles.compatibilityContainer}>
-              <Text style={[styles.compatibilityScore, { color: compatibility.color }]}>
-                {compatibilityScore}%
-              </Text>
-              <Text style={[styles.compatibilityLabel, { color: compatibility.color }]}>
-                {compatibility.text}
-              </Text>
-            </View>
-          )}
-
-          {/* Chat level indicator */}
-          <View style={styles.chatLevelContainer}>
-            <View style={[styles.chatLevelDot, { backgroundColor: chatLevel.color }]} />
-            <Text style={[styles.chatLevelText, { color: chatLevel.color }]}>
-              {chatLevel.level}
-            </Text>
-          </View>
-
-          {/* Turn indicator */}
-          <View style={[
-            styles.turnIndicator,
-            turnInfo.isMyTurn ? styles.turnIndicatorActive : styles.turnIndicatorWaiting
-          ]}>
-            <Ionicons
-              name={turnInfo.isMyTurn ? 'arrow-forward-circle' : 'time-outline'}
-              size={14}
-              color={turnInfo.isMyTurn ? colors.primary : colors.textMuted}
-            />
-            <Text style={[
-              styles.turnText,
-              turnInfo.isMyTurn ? styles.turnTextActive : styles.turnTextWaiting
-            ]}>
-              {turnInfo.text}
-            </Text>
-          </View>
-        </View>
-
-        {/* Arrow */}
-        <Ionicons name="chevron-forward" size={24} color={colors.textMuted} />
-      </View>
-
-      {/* Mission hint if exists */}
-      {connection.currentMission && (
-        <View style={styles.missionHint}>
-          <Ionicons name="flag" size={14} color={colors.primary} />
-          <Text style={styles.missionHintText} numberOfLines={1}>
-            {connection.currentMission.title}
-          </Text>
-        </View>
-      )}
-    </TouchableOpacity>
-  );
-};
-
-interface PendingCardProps {
-  connection: any;
-  onAccept: () => void;
-  onPostpone: () => void;
-  onDecline: () => void;
-}
-
-const PendingCard: React.FC<PendingCardProps> = ({ connection, onAccept, onPostpone, onDecline }) => {
-  const { otherUser, compatibilityScore, seenByReceiver } = connection;
-  const photo = otherUser?.photos?.[0] || 'https://ui-avatars.com/api/?background=252540&color=fff&name=U';
-  const compatibility = getCompatibilityLabel(compatibilityScore || 0);
-
-  return (
-    <View style={styles.pendingCard}>
-      <Image source={{ uri: photo }} style={styles.pendingPhoto} />
-      <View style={styles.pendingInfo}>
-        <Text style={styles.pendingName}>{otherUser?.name || 'Usuario'}</Text>
-        <Text style={styles.pendingText}>Quiere crear un nucleo contigo</Text>
-        {compatibilityScore > 0 && (
-          <View style={styles.pendingCompatibility}>
-            <Text style={[styles.pendingCompatibilityText, { color: compatibility.color }]}>
-              {compatibilityScore}% {compatibility.text}
-            </Text>
-          </View>
-        )}
-      </View>
-      <View style={styles.pendingActions}>
-        <TouchableOpacity style={styles.declineBtn} onPress={onDecline}>
-          <Ionicons name="close" size={20} color={colors.error} />
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.postponeBtn} onPress={onPostpone}>
-          <Ionicons name="time" size={20} color={colors.warning} />
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.acceptBtn} onPress={onAccept}>
-          <Ionicons name="checkmark" size={20} color="#FFF" />
-        </TouchableOpacity>
-      </View>
-    </View>
-  );
-};
-
-interface LaterCardProps {
-  connection: any;
-  isInitiator: boolean;
-  onAccept?: () => void;
-  onDecline?: () => void;
-}
-
-const LaterCard: React.FC<LaterCardProps> = ({ connection, isInitiator, onAccept, onDecline }) => {
-  const { otherUser, compatibilityScore } = connection;
-  const photo = otherUser?.photos?.[0] || 'https://ui-avatars.com/api/?background=252540&color=fff&name=U';
-  const compatibility = getCompatibilityLabel(compatibilityScore || 0);
-
-  return (
-    <View style={styles.laterCard}>
-      <Image source={{ uri: photo }} style={styles.laterPhoto} />
-      <View style={styles.laterInfo}>
-        <Text style={styles.laterName}>{otherUser?.name || 'Usuario'}</Text>
-        {isInitiator ? (
-          <Text style={styles.laterStatusText}>
-            Te puso en "otro momento"
-          </Text>
-        ) : (
-          <Text style={styles.laterStatusText}>
-            Lo dejaste para despues
-          </Text>
-        )}
-        {compatibilityScore > 0 && (
-          <Text style={[styles.laterCompatibility, { color: compatibility.color }]}>
-            {compatibilityScore}% compatible
-          </Text>
-        )}
-      </View>
-      {!isInitiator && onAccept && onDecline && (
-        <View style={styles.laterActions}>
-          <TouchableOpacity style={styles.laterDeclineBtn} onPress={onDecline}>
-            <Ionicons name="close" size={18} color={colors.error} />
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.laterAcceptBtn} onPress={onAccept}>
-            <Text style={styles.laterAcceptText}>Conectar</Text>
-          </TouchableOpacity>
-        </View>
-      )}
-    </View>
-  );
-};
-
-interface WaitingCardProps {
-  connection: any;
-}
-
-const WaitingCard: React.FC<WaitingCardProps> = ({ connection }) => {
-  const { otherUser, seenByReceiver, compatibilityScore } = connection;
-  const photo = otherUser?.photos?.[0] || 'https://ui-avatars.com/api/?background=252540&color=fff&name=U';
-
-  return (
-    <View style={styles.waitingCard}>
-      <Image source={{ uri: photo }} style={styles.waitingPhoto} />
-      <View style={styles.waitingInfo}>
-        <Text style={styles.waitingName}>{otherUser?.name}</Text>
-        <View style={styles.waitingStatusRow}>
-          {seenByReceiver ? (
-            <>
-              <Ionicons name="checkmark-done" size={14} color={colors.primary} />
-              <Text style={styles.waitingSeenText}>Visto</Text>
-            </>
-          ) : (
-            <>
-              <Ionicons name="checkmark" size={14} color={colors.textMuted} />
-              <Text style={styles.waitingText}>Enviado</Text>
-            </>
-          )}
-        </View>
-        {compatibilityScore > 0 && (
-          <Text style={styles.waitingCompatibility}>{compatibilityScore}% compatible</Text>
-        )}
-      </View>
-    </View>
-  );
-};
-
-// Rejected connection card with encouraging message
-interface RejectedCardProps {
-  connection: any;
-}
-
-const RejectedCard: React.FC<RejectedCardProps> = ({ connection }) => {
-  const { otherUser } = connection;
-  const photo = otherUser?.photos?.[0] || 'https://ui-avatars.com/api/?background=252540&color=fff&name=U';
-
-  return (
-    <View style={styles.rejectedCard}>
-      <Image source={{ uri: photo }} style={styles.rejectedPhoto} />
-      <View style={styles.rejectedInfo}>
-        <Text style={styles.rejectedName}>{otherUser?.name || 'Usuario'}</Text>
-        <Text style={styles.rejectedText}>No conectaron esta vez</Text>
-      </View>
-    </View>
-  );
-};
 
 export default function ConnectionsScreen() {
-  const {
-    connections,
-    pendingCounts,
-    loadConnections,
-    loadPendingCounts,
-    acceptConnection,
-    postponeConnection,
-    declineConnection,
-    isLoading,
-  } = useConnectionStore();
+  const [activeTab, setActiveTab] = useState<Tab>("active");
+  const [transparencyData, setTransparencyData] =
+    useState<TransparencyData | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [activeTab, setActiveTab] = useState<FilterTab>('all');
-  const [rejectedConnections, setRejectedConnections] = useState<any[]>([]);
-  const [showRejected, setShowRejected] = useState(false);
-
-  const loadRejectedConnections = async () => {
-    try {
-      const { connectionApi } = await import('../../src/services/api');
-      const response = await connectionApi.getAll({ filter: 'rejected' });
-      setRejectedConnections(response.data);
-    } catch (error) {
-      console.error('Error loading rejected connections:', error);
-    }
-  };
 
   useEffect(() => {
-    loadConnections();
-    loadPendingCounts();
-    loadRejectedConnections();
+    loadTransparencyData();
+
+    // Set up socket listeners
+    const socket = getSocket();
+
+    if (socket) {
+      // Listen for connection accepted
+      socket.on(SocketEvents.CONNECTION_ACCEPTED, (data: any) => {
+        console.log("Connection accepted:", data);
+        loadTransparencyData();
+      });
+
+      // Listen for connection requests (includes LATER and ENDED status)
+      socket.on(SocketEvents.CONNECTION_REQUEST, (data: any) => {
+        console.log("Connection request status changed:", data);
+        loadTransparencyData();
+      });
+
+      // Listen for nucleus dissolved (the other person dissolved it)
+      socket.on("nucleus:dissolved", (data: any) => {
+        console.log("Nucleus dissolved:", data);
+        loadTransparencyData();
+        setActiveTab("dissolved");
+      });
+
+      // Cleanup listeners on unmount
+      return () => {
+        socket.off(SocketEvents.CONNECTION_ACCEPTED);
+        socket.off(SocketEvents.CONNECTION_REQUEST);
+        socket.off("nucleus:dissolved");
+      };
+    }
   }, []);
+
+  const loadTransparencyData = async () => {
+    try {
+      const response = await api.get("/connections/transparency");
+      setTransparencyData(response.data);
+    } catch (error) {
+      console.error("Error loading transparency data:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const handleRefresh = async () => {
     setRefreshing(true);
-    await Promise.all([
-      loadConnections(),
-      loadPendingCounts(),
-      loadRejectedConnections(),
-    ]);
+    await loadTransparencyData();
     setRefreshing(false);
   };
 
-  const handleTabChange = async (tab: FilterTab) => {
-    setActiveTab(tab);
-    if (tab === 'similar') {
-      await loadConnections({ sortBy: 'compatibility' });
-    } else if (tab === 'later') {
-      await loadConnections({ status: 'LATER' });
-    } else {
-      await loadConnections();
-    }
-  };
-
-  // Filter connections based on active tab
-  const getFilteredConnections = () => {
-    if (activeTab === 'later') {
-      return connections.filter(c => c.status === 'LATER');
-    }
-    if (activeTab === 'similar') {
-      return [...connections]
-        .filter(c => c.status === 'PENDING' && !c.isInitiator)
-        .sort((a, b) => (b.compatibilityScore || 0) - (a.compatibilityScore || 0));
-    }
-    return connections;
-  };
-
-  const filteredConnections = getFilteredConnections();
-
-  // Categorize connections
-  const pendingConnections = filteredConnections.filter(
-    (c) => c.status === 'PENDING' && !c.isInitiator
-  );
-  const activeConnections = filteredConnections.filter(
-    (c) => c.status === 'ACTIVE' || c.status === 'COMPLETED'
-  );
-  const waitingConnections = filteredConnections.filter(
-    (c) => c.status === 'PENDING' && c.isInitiator
-  );
-  const laterConnections = filteredConnections.filter(
-    (c) => c.status === 'LATER'
-  );
-
-  const handleConnectionPress = (connectionId: string) => {
-    router.push(`/connection/${connectionId}`);
-  };
-
   const handleAccept = async (connectionId: string) => {
-    await acceptConnection(connectionId);
-    loadPendingCounts();
-  };
-
-  const handlePostpone = async (connectionId: string) => {
-    await postponeConnection(connectionId);
-    loadPendingCounts();
+    try {
+      await api.post(`/connections/${connectionId}/accept`);
+      Alert.alert("¡Núcleo creado!", "Ahora pueden comenzar a conocerse");
+      loadTransparencyData();
+    } catch (error) {
+      Alert.alert("Error", "No se pudo aceptar la conexión");
+    }
   };
 
   const handleDecline = async (connectionId: string) => {
-    await declineConnection(connectionId);
-    loadPendingCounts();
+    console.log(
+      "[DECLINE] Opening decline alert for connection:",
+      connectionId,
+    );
+    Alert.alert("Rechazar conexión", "¿Por qué no estás interesado/a?", [
+      { text: "Cancelar", style: "cancel" },
+      {
+        text: "No compartimos intereses",
+        onPress: () => processDecline(connectionId, "No compartimos intereses"),
+      },
+      {
+        text: "Perfil incompleto",
+        onPress: () => processDecline(connectionId, "Perfil incompleto"),
+      },
+      {
+        text: "Otro motivo",
+        onPress: () => processDecline(connectionId, "Otro motivo"),
+      },
+    ]);
   };
 
-  if (isLoading && connections.length === 0) {
+  const processDecline = async (connectionId: string, reason: string) => {
+    try {
+      console.log("[DECLINE] Sending decline request:", connectionId, reason);
+      const response = await api.post(`/connections/${connectionId}/decline`, {
+        declineReason: reason,
+      });
+      console.log("[DECLINE] Success:", response.data);
+      loadTransparencyData();
+    } catch (error: any) {
+      console.error("[DECLINE] Error:", error.response?.data || error.message);
+      Alert.alert("Error", "No se pudo rechazar la conexión");
+    }
+  };
+
+  const handlePostpone = async (connectionId: string) => {
+    try {
+      await api.post(`/connections/${connectionId}/later`);
+      loadTransparencyData();
+    } catch (error) {
+      Alert.alert("Error", "No se pudo posponer la conexión");
+    }
+  };
+
+  if (isLoading) {
     return (
-      <SafeAreaView style={styles.container} edges={['top']}>
+      <SafeAreaView style={styles.container} edges={["top"]}>
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={colors.primary} />
-          <Text style={styles.loadingText}>Cargando nucleos...</Text>
+          <Text style={styles.loadingText}>Cargando conexiones...</Text>
         </View>
       </SafeAreaView>
     );
   }
 
-  return (
-    <SafeAreaView style={styles.container} edges={['top']}>
-      <ScrollView
-        style={styles.scrollView}
-        contentContainerStyle={styles.content}
-        showsVerticalScrollIndicator={false}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={handleRefresh}
-            tintColor={colors.primary}
-          />
-        }
-      >
-        {/* Header */}
-        <View style={styles.header}>
-          <Text style={styles.title}>Nucleos</Text>
-          <Text style={styles.subtitle}>
-            Tus conexiones en progreso
+  const tabs = [
+    {
+      key: "active" as Tab,
+      label: "Activas",
+      count: transparencyData?.activeMatches.length || 0,
+      icon: "flash",
+    },
+    {
+      key: "whoLikedYou" as Tab,
+      label: "Te dieron like",
+      count: transparencyData?.whoLikedYou.length || 0,
+      icon: "heart",
+    },
+    {
+      key: "whoYouLiked" as Tab,
+      label: "Les diste like",
+      count: transparencyData?.whoYouLiked.length || 0,
+      icon: "time",
+    },
+    {
+      key: "rejected" as Tab,
+      label: "Rechazadas",
+      count: transparencyData?.rejections.length || 0,
+      icon: "close-circle",
+    },
+    {
+      key: "later" as Tab,
+      label: "Otro momento",
+      count: transparencyData?.postponed.length || 0,
+      icon: "calendar",
+    },
+    {
+      key: "dissolved" as Tab,
+      label: "Antiguos",
+      count: transparencyData?.dissolved?.length || 0,
+      icon: "nuclear",
+    },
+  ];
+
+  const renderActiveMatches = () => {
+    if (!transparencyData?.activeMatches.length) {
+      return (
+        <View style={styles.emptyState}>
+          <Ionicons name="flash-outline" size={64} color={colors.textMuted} />
+          <Text style={styles.emptyTitle}>No tienes conexiones activas</Text>
+          <Text style={styles.emptyDescription}>
+            Acepta las solicitudes que te gusten para comenzar
           </Text>
         </View>
+      );
+    }
 
-        {/* Filter Tabs */}
-        <View style={styles.tabsContainer}>
+    return (
+      <>
+        {transparencyData.activeMatches.map((match) => (
           <TouchableOpacity
-            style={[styles.tab, activeTab === 'all' && styles.tabActive]}
-            onPress={() => handleTabChange('all')}
+            key={match.connectionId}
+            style={styles.card}
+            onPress={() => router.push(`/nucleus/${match.connectionId}`)}
           >
-            <Ionicons
-              name="grid"
-              size={16}
-              color={activeTab === 'all' ? colors.primary : colors.textMuted}
+            <Image
+              source={{
+                uri:
+                  match.user.photos[0] ||
+                  "https://ui-avatars.com/api/?name=User",
+              }}
+              style={styles.cardPhoto}
             />
-            <Text style={[styles.tabText, activeTab === 'all' && styles.tabTextActive]}>
-              Todos
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[styles.tab, activeTab === 'similar' && styles.tabActive]}
-            onPress={() => handleTabChange('similar')}
-          >
-            <Ionicons
-              name="heart"
-              size={16}
-              color={activeTab === 'similar' ? colors.secondary : colors.textMuted}
-            />
-            <Text style={[styles.tabText, activeTab === 'similar' && styles.tabTextActive]}>
-              Similares a mi
-            </Text>
-            {pendingCounts.pending > 0 && (
-              <View style={styles.tabBadge}>
-                <Text style={styles.tabBadgeText}>{pendingCounts.pending}</Text>
-              </View>
-            )}
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[styles.tab, activeTab === 'later' && styles.tabActive]}
-            onPress={() => handleTabChange('later')}
-          >
-            <Ionicons
-              name="time"
-              size={16}
-              color={activeTab === 'later' ? colors.warning : colors.textMuted}
-            />
-            <Text style={[styles.tabText, activeTab === 'later' && styles.tabTextActive]}>
-              Otro momento
-            </Text>
-            {pendingCounts.later > 0 && (
-              <View style={[styles.tabBadge, { backgroundColor: colors.warning }]}>
-                <Text style={styles.tabBadgeText}>{pendingCounts.later}</Text>
-              </View>
-            )}
-          </TouchableOpacity>
-        </View>
-
-        {/* Content based on active tab */}
-        {activeTab === 'later' ? (
-          // Later tab content
-          <View style={styles.section}>
-            {laterConnections.length > 0 ? (
-              <>
-                <View style={styles.sectionHeader}>
-                  <Ionicons name="time" size={20} color={colors.warning} />
-                  <Text style={styles.sectionTitle}>
-                    En otro momento ({laterConnections.length})
-                  </Text>
-                </View>
-                <Text style={styles.sectionDescription}>
-                  Conexiones que tu o ellos dejaron para despues
-                </Text>
-                {laterConnections.map((connection) => (
-                  <LaterCard
-                    key={connection.id}
-                    connection={connection}
-                    isInitiator={connection.isInitiator}
-                    onAccept={!connection.isInitiator ? () => handleAccept(connection.id) : undefined}
-                    onDecline={!connection.isInitiator ? () => handleDecline(connection.id) : undefined}
+            <View style={styles.cardInfo}>
+              <Text style={styles.cardName}>{match.user.name}</Text>
+              <View style={styles.progressContainer}>
+                <View style={styles.progressBar}>
+                  <View
+                    style={[
+                      styles.progressFill,
+                      { width: `${match.progress}%` },
+                    ]}
                   />
-                ))}
-              </>
-            ) : (
-              <View style={styles.emptyTabContainer}>
-                <Ionicons name="time-outline" size={48} color={colors.textMuted} />
-                <Text style={styles.emptyTabTitle}>Sin conexiones pendientes</Text>
-                <Text style={styles.emptyTabText}>
-                  Aqui apareceran las conexiones que dejes para otro momento
-                </Text>
+                </View>
+                <Text style={styles.progressText}>{match.progress}%</Text>
               </View>
-            )}
-          </View>
-        ) : activeTab === 'similar' ? (
-          // Similar tab content - sorted by compatibility
-          <View style={styles.section}>
-            {pendingConnections.length > 0 ? (
-              <>
-                <View style={styles.sectionHeader}>
-                  <Ionicons name="heart" size={20} color={colors.secondary} />
-                  <Text style={styles.sectionTitle}>
-                    Similares a ti ({pendingConnections.length})
-                  </Text>
-                </View>
-                <Text style={styles.sectionDescription}>
-                  Ordenados por compatibilidad con tus intereses y valores
-                </Text>
-                {pendingConnections.map((connection) => (
-                  <PendingCard
-                    key={connection.id}
-                    connection={connection}
-                    onAccept={() => handleAccept(connection.id)}
-                    onPostpone={() => handlePostpone(connection.id)}
-                    onDecline={() => handleDecline(connection.id)}
-                  />
-                ))}
-              </>
-            ) : (
-              <View style={styles.emptyTabContainer}>
-                <Ionicons name="heart-outline" size={48} color={colors.textMuted} />
-                <Text style={styles.emptyTabTitle}>Sin solicitudes pendientes</Text>
-                <Text style={styles.emptyTabText}>
-                  Cuando recibas solicitudes, aqui apareceran ordenadas por compatibilidad
-                </Text>
-              </View>
-            )}
-          </View>
-        ) : (
-          // All tab content
-          <>
-            {/* Info about chat levels */}
-            <View style={styles.infoCard}>
-              <Text style={styles.infoTitle}>Niveles de chat</Text>
-              <View style={styles.levelsList}>
-                <View style={styles.levelItem}>
-                  <View style={[styles.levelDot, { backgroundColor: colors.textMuted }]} />
-                  <Text style={styles.levelText}>0-29%: Bloqueado</Text>
-                </View>
-                <View style={styles.levelItem}>
-                  <View style={[styles.levelDot, { backgroundColor: '#2196F3' }]} />
-                  <Text style={styles.levelText}>30-49%: Guiado</Text>
-                </View>
-                <View style={styles.levelItem}>
-                  <View style={[styles.levelDot, { backgroundColor: '#9C27B0' }]} />
-                  <Text style={styles.levelText}>50-69%: Voz</Text>
-                </View>
-                <View style={styles.levelItem}>
-                  <View style={[styles.levelDot, { backgroundColor: colors.success }]} />
-                  <Text style={styles.levelText}>70%+: Completo</Text>
-                </View>
-              </View>
+              <Text style={styles.cardStatus}>
+                {match.chatLevel.replace("_", " ")}
+              </Text>
             </View>
+            <Ionicons
+              name="chevron-forward"
+              size={24}
+              color={colors.textMuted}
+            />
+          </TouchableOpacity>
+        ))}
+      </>
+    );
+  };
 
-            {/* Pending requests */}
-            {pendingConnections.length > 0 && (
-              <View style={styles.section}>
-                <View style={styles.sectionHeader}>
-                  <Ionicons name="notifications" size={20} color={colors.secondary} />
-                  <Text style={styles.sectionTitle}>
-                    Solicitudes ({pendingConnections.length})
-                  </Text>
-                </View>
-                {pendingConnections.map((connection) => (
-                  <PendingCard
-                    key={connection.id}
-                    connection={connection}
-                    onAccept={() => handleAccept(connection.id)}
-                    onPostpone={() => handlePostpone(connection.id)}
-                    onDecline={() => handleDecline(connection.id)}
-                  />
-                ))}
-              </View>
-            )}
+  const renderWhoLikedYou = () => {
+    if (!transparencyData?.whoLikedYou.length) {
+      return (
+        <View style={styles.emptyState}>
+          <Ionicons name="heart-outline" size={64} color={colors.textMuted} />
+          <Text style={styles.emptyTitle}>Nadie te ha dado like aún</Text>
+          <Text style={styles.emptyDescription}>
+            Completa tu perfil y sigue descubriendo personas
+          </Text>
+        </View>
+      );
+    }
 
-            {/* Active nucleos */}
-            {activeConnections.length > 0 && (
-              <View style={styles.section}>
-                <View style={styles.sectionHeader}>
-                  <Ionicons name="git-network" size={20} color={colors.primary} />
-                  <Text style={styles.sectionTitle}>
-                    Activos ({activeConnections.length})
-                  </Text>
-                </View>
-                {activeConnections.map((connection) => (
-                  <NucleoCard
-                    key={connection.id}
-                    connection={connection}
-                    onPress={() => handleConnectionPress(connection.id)}
-                    showCompatibility={true}
-                  />
-                ))}
-              </View>
-            )}
-
-            {/* Waiting for response */}
-            {waitingConnections.length > 0 && (
-              <View style={styles.section}>
-                <View style={styles.sectionHeader}>
-                  <Ionicons name="send" size={20} color={colors.textMuted} />
-                  <Text style={styles.sectionTitle}>
-                    Enviadas ({waitingConnections.length})
-                  </Text>
-                </View>
-                {waitingConnections.map((connection) => (
-                  <WaitingCard key={connection.id} connection={connection} />
-                ))}
-              </View>
-            )}
-
-            {/* Rejected connections section */}
-            {rejectedConnections.length > 0 && (
-              <View style={styles.section}>
-                <TouchableOpacity
-                  style={styles.rejectedHeader}
-                  onPress={() => setShowRejected(!showRejected)}
-                >
-                  <View style={styles.sectionHeader}>
-                    <Ionicons name="heart-dislike" size={20} color={colors.textMuted} />
-                    <Text style={styles.sectionTitle}>
-                      No conectaron ({rejectedConnections.length})
-                    </Text>
-                  </View>
-                  <Ionicons
-                    name={showRejected ? 'chevron-up' : 'chevron-down'}
-                    size={20}
-                    color={colors.textMuted}
-                  />
-                </TouchableOpacity>
-
-                {showRejected && (
-                  <>
-                    <View style={styles.encouragementBanner}>
-                      <Ionicons name="sparkles" size={20} color={colors.primary} />
-                      <Text style={styles.encouragementText}>
-                        No te desanimes, hay muchas personas esperando conocerte
-                      </Text>
-                    </View>
-                    {rejectedConnections.map((connection) => (
-                      <RejectedCard key={connection.id} connection={connection} />
-                    ))}
-                  </>
-                )}
-              </View>
-            )}
-
-            {/* Empty state */}
-            {connections.length === 0 && (
-              <View style={styles.emptyContainer}>
-                <Ionicons name="git-network-outline" size={64} color={colors.textMuted} />
-                <Text style={styles.emptyTitle}>Sin nucleos aun</Text>
-                <Text style={styles.emptyText}>
-                  Entra a un portal y crea conexiones con personas que comparten tus intereses
+    return (
+      <>
+        {transparencyData.whoLikedYou.map((like) => (
+          <View key={like.connectionId} style={styles.card}>
+            <Image
+              source={{
+                uri:
+                  like.user.photos[0] ||
+                  "https://ui-avatars.com/api/?name=User",
+              }}
+              style={styles.cardPhoto}
+            />
+            <View style={styles.cardInfo}>
+              <Text style={styles.cardName}>{like.user.name}</Text>
+              {like.user.bio && (
+                <Text style={styles.cardBio} numberOfLines={2}>
+                  {like.user.bio}
                 </Text>
-                <TouchableOpacity
-                  style={styles.emptyButton}
-                  onPress={() => router.push('/(tabs)')}
-                >
-                  <Text style={styles.emptyButtonText}>Explorar portales</Text>
-                </TouchableOpacity>
-              </View>
-            )}
-          </>
-        )}
+              )}
+              {like.compatibilityScore > 0 && (
+                <Text style={styles.cardCompatibility}>
+                  {like.compatibilityScore}% compatibles
+                </Text>
+              )}
+            </View>
+            <View style={styles.cardActions}>
+              <TouchableOpacity
+                style={[styles.actionButton, styles.acceptButton]}
+                onPress={() => handleAccept(like.connectionId)}
+              >
+                <Ionicons name="checkmark" size={24} color="white" />
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.actionButton, styles.laterButton]}
+                onPress={() => handlePostpone(like.connectionId)}
+              >
+                <Ionicons name="time" size={20} color={colors.textSecondary} />
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.actionButton, styles.declineButton]}
+                onPress={() => handleDecline(like.connectionId)}
+              >
+                <Ionicons name="close" size={24} color={colors.error} />
+              </TouchableOpacity>
+            </View>
+          </View>
+        ))}
+      </>
+    );
+  };
+
+  const renderWhoYouLiked = () => {
+    if (!transparencyData?.whoYouLiked.length) {
+      return (
+        <View style={styles.emptyState}>
+          <Ionicons name="time-outline" size={64} color={colors.textMuted} />
+          <Text style={styles.emptyTitle}>No has dado like a nadie</Text>
+          <Text style={styles.emptyDescription}>
+            Ve a Descubrir y encuentra personas interesantes
+          </Text>
+        </View>
+      );
+    }
+
+    return (
+      <>
+        {transparencyData.whoYouLiked.map((like) => (
+          <View key={like.connectionId} style={styles.card}>
+            <Image
+              source={{
+                uri:
+                  like.user.photos[0] ||
+                  "https://ui-avatars.com/api/?name=User",
+              }}
+              style={styles.cardPhoto}
+            />
+            <View style={styles.cardInfo}>
+              <Text style={styles.cardName}>{like.user.name}</Text>
+              {like.user.bio && (
+                <Text style={styles.cardBio} numberOfLines={2}>
+                  {like.user.bio}
+                </Text>
+              )}
+              <Text style={styles.cardStatus}>Esperando respuesta...</Text>
+            </View>
+            <Ionicons
+              name="hourglass-outline"
+              size={24}
+              color={colors.textMuted}
+            />
+          </View>
+        ))}
+      </>
+    );
+  };
+
+  const renderRejections = () => {
+    if (!transparencyData?.rejections.length) {
+      return (
+        <View style={styles.emptyState}>
+          <Ionicons
+            name="checkmark-circle-outline"
+            size={64}
+            color={colors.success}
+          />
+          <Text style={styles.emptyTitle}>No hay rechazos</Text>
+          <Text style={styles.emptyDescription}>
+            Todas tus conexiones están activas o pendientes
+          </Text>
+        </View>
+      );
+    }
+
+    return (
+      <>
+        {transparencyData.rejections.map((rejection) => (
+          <View
+            key={rejection.connectionId}
+            style={[styles.card, styles.rejectedCard]}
+          >
+            <Image
+              source={{
+                uri:
+                  rejection.user.photos[0] ||
+                  "https://ui-avatars.com/api/?name=User",
+              }}
+              style={[styles.cardPhoto, styles.rejectedPhoto]}
+            />
+            <View style={styles.cardInfo}>
+              <Text style={styles.cardName}>{rejection.user.name}</Text>
+              {rejection.youWereRejected && rejection.declineReason && (
+                <View style={styles.rejectionReasonContainer}>
+                  <Ionicons
+                    name="information-circle"
+                    size={16}
+                    color={colors.error}
+                  />
+                  <Text style={styles.rejectionReason}>
+                    {rejection.declineReason}
+                  </Text>
+                </View>
+              )}
+              {rejection.youRejected && (
+                <Text style={styles.cardStatus}>Rechazaste esta conexión</Text>
+              )}
+              {rejection.youWereRejected && (
+                <Text style={[styles.cardStatus, { color: colors.error }]}>
+                  No aceptaron tu solicitud
+                </Text>
+              )}
+            </View>
+          </View>
+        ))}
+      </>
+    );
+  };
+
+  const renderPostponed = () => {
+    if (!transparencyData?.postponed.length) {
+      return (
+        <View style={styles.emptyState}>
+          <Ionicons
+            name="calendar-outline"
+            size={64}
+            color={colors.textMuted}
+          />
+          <Text style={styles.emptyTitle}>No has pospuesto nada</Text>
+          <Text style={styles.emptyDescription}>
+            Las conexiones para después aparecerán aquí
+          </Text>
+        </View>
+      );
+    }
+
+    return (
+      <>
+        {transparencyData.postponed.map((postponed) => (
+          <View key={postponed.connectionId} style={styles.card}>
+            <Image
+              source={{
+                uri:
+                  postponed.user.photos[0] ||
+                  "https://ui-avatars.com/api/?name=User",
+              }}
+              style={styles.cardPhoto}
+            />
+            <View style={styles.cardInfo}>
+              <Text style={styles.cardName}>{postponed.user.name}</Text>
+              {postponed.user.bio && (
+                <Text style={styles.cardBio} numberOfLines={2}>
+                  {postponed.user.bio}
+                </Text>
+              )}
+            </View>
+            <View style={styles.cardActions}>
+              <TouchableOpacity
+                style={[styles.actionButton, styles.reconnectButton]}
+                onPress={() => handleAccept(postponed.connectionId)}
+              >
+                <Ionicons name="refresh" size={20} color="white" />
+                <Text style={styles.buttonText}>Reconectar</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.actionButton, styles.declineButton]}
+                onPress={() => handleDecline(postponed.connectionId)}
+              >
+                <Ionicons name="close" size={24} color={colors.error} />
+              </TouchableOpacity>
+            </View>
+          </View>
+        ))}
+      </>
+    );
+  };
+
+  const renderDissolved = () => {
+    if (!transparencyData?.dissolved?.length) {
+      return (
+        <View style={styles.emptyState}>
+          <Ionicons name="nuclear-outline" size={64} color={colors.textMuted} />
+          <Text style={styles.emptyTitle}>Sin núcleos antiguos</Text>
+          <Text style={styles.emptyDescription}>
+            Los núcleos que se disuelvan aparecerán aquí
+          </Text>
+        </View>
+      );
+    }
+
+    return (
+      <>
+        {transparencyData.dissolved.map((item: any) => (
+          <View
+            key={item.connectionId}
+            style={[styles.card, styles.dissolvedCard]}
+          >
+            <Image
+              source={{
+                uri:
+                  item.user.photos?.[0] ||
+                  "https://ui-avatars.com/api/?name=User",
+              }}
+              style={[styles.cardPhoto, styles.dissolvedPhoto]}
+            />
+            <View style={styles.cardInfo}>
+              <Text style={styles.cardName}>{item.user.name}</Text>
+              {item.theyDissolvedIt && item.dissolveReason ? (
+                <View style={styles.dissolvedReasonContainer}>
+                  <Ionicons
+                    name="chatbubble-ellipses"
+                    size={14}
+                    color={colors.error}
+                  />
+                  <Text style={styles.dissolvedReasonText}>
+                    {item.dissolveReason}
+                  </Text>
+                </View>
+              ) : item.iDissolvedIt ? (
+                <Text style={styles.cardStatus}>Lo disolviste tú</Text>
+              ) : null}
+              <Text style={[styles.cardStatus, { color: colors.error }]}>
+                Núcleo disuelto
+              </Text>
+            </View>
+          </View>
+        ))}
+      </>
+    );
+  };
+
+  const renderContent = () => {
+    switch (activeTab) {
+      case "active":
+        return renderActiveMatches();
+      case "whoLikedYou":
+        return renderWhoLikedYou();
+      case "whoYouLiked":
+        return renderWhoYouLiked();
+      case "rejected":
+        return renderRejections();
+      case "later":
+        return renderPostponed();
+      case "dissolved":
+        return renderDissolved();
+      default:
+        return null;
+    }
+  };
+
+  return (
+    <SafeAreaView style={styles.container} edges={["top"]}>
+      <GlobalHeader notificationCount={0} />
+      {/* Header */}
+      <View style={styles.header}>
+        <Text style={styles.headerTitle}>Conexiones</Text>
+        <Text style={styles.headerSubtitle}>Transparencia total</Text>
+      </View>
+
+      {/* Tabs */}
+      <View style={styles.tabsContainer}>
+        <View style={styles.tabsContent}>
+          {tabs.map((tab) => (
+            <TouchableOpacity
+              key={tab.key}
+              style={[styles.tab, activeTab === tab.key && styles.activeTab]}
+              onPress={() => setActiveTab(tab.key)}
+            >
+              <Ionicons
+                name={tab.icon as any}
+                size={18}
+                color={
+                  activeTab === tab.key ? colors.primary : colors.textSecondary
+                }
+              />
+              <Text
+                style={[
+                  styles.tabLabel,
+                  activeTab === tab.key && styles.activeTabLabel,
+                ]}
+                numberOfLines={1}
+                ellipsizeMode="tail"
+              >
+                {tab.label}
+              </Text>
+              {tab.count > 0 && (
+                <View style={styles.tabBadge}>
+                  <Text style={styles.tabBadgeText}>{tab.count}</Text>
+                </View>
+              )}
+            </TouchableOpacity>
+          ))}
+        </View>
+      </View>
+
+      {/* Content */}
+      <ScrollView
+        style={styles.content}
+        contentContainerStyle={styles.contentContainer}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
+        }
+      >
+        {renderContent()}
       </ScrollView>
     </SafeAreaView>
   );
@@ -694,513 +639,237 @@ const styles = StyleSheet.create({
   },
   loadingContainer: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     gap: spacing.md,
   },
   loadingText: {
-    color: colors.textSecondary,
     fontSize: fontSize.md,
-  },
-  scrollView: {
-    flex: 1,
-  },
-  content: {
-    paddingHorizontal: spacing.lg,
-    paddingBottom: spacing.xxl,
+    color: colors.textSecondary,
   },
   header: {
-    paddingTop: spacing.md,
-    paddingBottom: spacing.md,
-  },
-  title: {
-    color: colors.text,
-    fontSize: fontSize.xxxl,
-    fontWeight: fontWeight.bold,
-  },
-  subtitle: {
-    color: colors.textSecondary,
-    fontSize: fontSize.md,
-    marginTop: spacing.xs,
-  },
-  // Tabs
-  tabsContainer: {
-    flexDirection: 'row',
+    padding: spacing.lg,
     backgroundColor: colors.backgroundCard,
-    borderRadius: borderRadius.lg,
-    padding: spacing.xs,
-    marginBottom: spacing.lg,
+  },
+  headerTitle: {
+    fontSize: fontSize.xxl,
+    fontFamily: "Inter_700Bold",
+    color: colors.text,
+    marginBottom: spacing.xs,
+  },
+  headerSubtitle: {
+    fontSize: fontSize.sm,
+    color: colors.textSecondary,
+  },
+  tabsContainer: {
+    backgroundColor: colors.backgroundCard,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+    paddingVertical: spacing.sm,
+  },
+  tabsContent: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "center",
+    alignItems: "center",
+    gap: spacing.xs,
+    paddingHorizontal: spacing.md,
   },
   tab: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: spacing.sm,
-    paddingHorizontal: spacing.xs,
-    borderRadius: borderRadius.md,
+    flexDirection: "row",
+    alignItems: "center",
     gap: spacing.xs,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs,
+    borderRadius: borderRadius.lg,
+    backgroundColor: colors.background,
   },
-  tabActive: {
-    backgroundColor: colors.backgroundLight,
+  activeTab: {
+    backgroundColor: colors.primaryLight,
   },
-  tabText: {
-    color: colors.textMuted,
-    fontSize: fontSize.sm,
+  tabLabel: {
+    fontSize: fontSize.xs,
+    color: colors.textSecondary,
     fontWeight: fontWeight.medium,
+    flexShrink: 1,
   },
-  tabTextActive: {
-    color: colors.text,
+  activeTabLabel: {
+    color: colors.primary,
+    fontWeight: fontWeight.semibold,
   },
   tabBadge: {
-    backgroundColor: colors.secondary,
-    borderRadius: 10,
-    minWidth: 20,
-    height: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
+    backgroundColor: colors.primary,
     paddingHorizontal: 6,
+    paddingVertical: 1,
+    borderRadius: borderRadius.full,
+    minWidth: 18,
+    alignItems: "center",
+    justifyContent: "center",
   },
   tabBadgeText: {
-    color: '#FFF',
     fontSize: fontSize.xs,
+    color: "white",
     fontWeight: fontWeight.bold,
   },
-  // Info card
-  infoCard: {
+  content: {
+    flex: 1,
+  },
+  contentContainer: {
+    flexGrow: 1,
+    padding: spacing.md,
+  },
+  card: {
+    flexDirection: "row",
     backgroundColor: colors.backgroundCard,
     borderRadius: borderRadius.lg,
     padding: spacing.md,
-    marginBottom: spacing.lg,
-    borderWidth: 1,
-    borderColor: colors.border,
+    alignItems: "center",
+    gap: spacing.md,
+    marginBottom: spacing.md,
+    ...shadows.sm,
   },
-  infoTitle: {
-    color: colors.text,
-    fontSize: fontSize.sm,
-    fontWeight: fontWeight.semibold,
-    marginBottom: spacing.sm,
+  cardPhoto: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
   },
-  levelsList: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing.sm,
-  },
-  levelItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
+  cardInfo: {
+    flex: 1,
     gap: spacing.xs,
-    width: '48%',
+    minWidth: 0,
   },
-  levelDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-  },
-  levelText: {
-    color: colors.textSecondary,
-    fontSize: fontSize.xs,
-  },
-  // Sections
-  section: {
-    marginBottom: spacing.lg,
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-    marginBottom: spacing.sm,
-  },
-  sectionTitle: {
-    color: colors.text,
+  cardName: {
     fontSize: fontSize.md,
+    fontWeight: fontWeight.bold,
+    color: colors.text,
+  },
+  cardBio: {
+    fontSize: fontSize.sm,
+    color: colors.textSecondary,
+  },
+  cardCompatibility: {
+    fontSize: fontSize.sm,
+    color: colors.primary,
     fontWeight: fontWeight.semibold,
   },
-  sectionDescription: {
-    color: colors.textSecondary,
+  cardStatus: {
     fontSize: fontSize.sm,
-    marginBottom: spacing.md,
+    color: colors.textMuted,
   },
-  // Nucleo Card styles
-  nucleoCard: {
-    backgroundColor: colors.backgroundCard,
-    borderRadius: borderRadius.lg,
-    marginBottom: spacing.md,
-    overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  progressBarContainer: {
-    height: 24,
-    backgroundColor: colors.backgroundLight,
-    flexDirection: 'row',
-    alignItems: 'center',
+  progressContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.sm,
   },
   progressBar: {
-    height: '100%',
+    flex: 1,
+    height: 6,
+    backgroundColor: colors.border,
+    borderRadius: 3,
+    overflow: "hidden",
+  },
+  progressFill: {
+    height: "100%",
     backgroundColor: colors.primary,
   },
   progressText: {
-    position: 'absolute',
-    right: spacing.sm,
-    color: colors.text,
     fontSize: fontSize.xs,
+    color: colors.textSecondary,
     fontWeight: fontWeight.semibold,
   },
-  nucleoContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: spacing.md,
-  },
-  photoContainer: {
-    position: 'relative',
-  },
-  photo: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-  },
-  temperatureEmoji: {
-    position: 'absolute',
-    bottom: -2,
-    right: -2,
-    fontSize: 16,
-  },
-  nucleoInfo: {
-    flex: 1,
-    marginLeft: spacing.md,
-  },
-  nucleoName: {
-    color: colors.text,
-    fontSize: fontSize.lg,
-    fontWeight: fontWeight.semibold,
-  },
-  compatibilityContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
+  cardActions: {
+    flexDirection: "row",
     gap: spacing.xs,
-    marginTop: 2,
+    flexShrink: 0,
   },
-  compatibilityScore: {
-    fontSize: fontSize.sm,
-    fontWeight: fontWeight.bold,
+  actionButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    justifyContent: "center",
+    alignItems: "center",
   },
-  compatibilityLabel: {
-    fontSize: fontSize.sm,
-  },
-  chatLevelContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.xs,
-    marginTop: 2,
-  },
-  chatLevelDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-  },
-  chatLevelText: {
-    fontSize: fontSize.sm,
-  },
-  turnIndicator: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.xs,
-    marginTop: spacing.xs,
-    paddingVertical: 2,
-    paddingHorizontal: spacing.sm,
-    borderRadius: borderRadius.sm,
-    alignSelf: 'flex-start',
-  },
-  turnIndicatorActive: {
-    backgroundColor: colors.primary + '20',
-  },
-  turnIndicatorWaiting: {
-    backgroundColor: colors.backgroundLight,
-  },
-  turnText: {
-    fontSize: fontSize.xs,
-  },
-  turnTextActive: {
-    color: colors.primary,
-    fontWeight: fontWeight.medium,
-  },
-  turnTextWaiting: {
-    color: colors.textMuted,
-  },
-  missionHint: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.xs,
-    paddingHorizontal: spacing.md,
-    paddingBottom: spacing.sm,
-  },
-  missionHintText: {
-    color: colors.primary,
-    fontSize: fontSize.sm,
-  },
-  // Pending Card styles
-  pendingCard: {
-    backgroundColor: colors.backgroundCard,
-    borderRadius: borderRadius.lg,
-    padding: spacing.md,
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: spacing.md,
-    borderWidth: 1,
-    borderColor: colors.secondary + '40',
-  },
-  pendingPhoto: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-  },
-  pendingInfo: {
-    flex: 1,
-    marginLeft: spacing.md,
-  },
-  pendingName: {
-    color: colors.text,
-    fontSize: fontSize.md,
-    fontWeight: fontWeight.semibold,
-  },
-  pendingText: {
-    color: colors.secondary,
-    fontSize: fontSize.sm,
-  },
-  pendingCompatibility: {
-    marginTop: 2,
-  },
-  pendingCompatibilityText: {
-    fontSize: fontSize.xs,
-    fontWeight: fontWeight.medium,
-  },
-  pendingActions: {
-    flexDirection: 'row',
-    gap: spacing.sm,
-  },
-  declineBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: colors.backgroundLight,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: colors.error,
-  },
-  postponeBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: colors.backgroundLight,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: colors.warning,
-  },
-  acceptBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+  acceptButton: {
     backgroundColor: colors.success,
-    justifyContent: 'center',
-    alignItems: 'center',
   },
-  // Later Card styles
-  laterCard: {
-    backgroundColor: colors.backgroundCard,
-    borderRadius: borderRadius.lg,
-    padding: spacing.md,
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: spacing.md,
-    borderWidth: 1,
-    borderColor: colors.warning + '40',
-  },
-  laterPhoto: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-  },
-  laterInfo: {
-    flex: 1,
-    marginLeft: spacing.md,
-  },
-  laterName: {
-    color: colors.text,
-    fontSize: fontSize.md,
-    fontWeight: fontWeight.semibold,
-  },
-  laterStatusText: {
-    color: colors.warning,
-    fontSize: fontSize.sm,
-  },
-  laterCompatibility: {
-    fontSize: fontSize.xs,
-    marginTop: 2,
-  },
-  laterActions: {
-    flexDirection: 'row',
-    gap: spacing.sm,
-    alignItems: 'center',
-  },
-  laterDeclineBtn: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: colors.backgroundLight,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: colors.error,
-  },
-  laterAcceptBtn: {
+  reconnectButton: {
     backgroundColor: colors.primary,
-    paddingVertical: spacing.xs,
-    paddingHorizontal: spacing.md,
-    borderRadius: borderRadius.md,
-  },
-  laterAcceptText: {
-    color: '#FFF',
-    fontSize: fontSize.sm,
-    fontWeight: fontWeight.semibold,
-  },
-  // Waiting Card styles
-  waitingCard: {
-    backgroundColor: colors.backgroundCard,
-    borderRadius: borderRadius.lg,
-    padding: spacing.md,
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: spacing.md,
-  },
-  waitingPhoto: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-  },
-  waitingInfo: {
-    flex: 1,
-    marginLeft: spacing.md,
-  },
-  waitingName: {
-    color: colors.text,
-    fontSize: fontSize.md,
-    fontWeight: fontWeight.semibold,
-  },
-  waitingStatusRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
     gap: spacing.xs,
-    marginTop: 2,
+    paddingHorizontal: spacing.md,
+    width: "auto",
   },
-  waitingText: {
-    color: colors.textMuted,
+  buttonText: {
+    color: "white",
     fontSize: fontSize.sm,
-  },
-  waitingSeenText: {
-    color: colors.primary,
-    fontSize: fontSize.sm,
-  },
-  waitingCompatibility: {
-    color: colors.textSecondary,
-    fontSize: fontSize.xs,
-    marginTop: 2,
-  },
-  // Empty states
-  emptyContainer: {
-    alignItems: 'center',
-    paddingVertical: spacing.xxl * 2,
-  },
-  emptyTitle: {
-    color: colors.text,
-    fontSize: fontSize.xl,
-    fontWeight: fontWeight.semibold,
-    marginTop: spacing.lg,
-  },
-  emptyText: {
-    color: colors.textSecondary,
-    fontSize: fontSize.md,
-    textAlign: 'center',
-    marginTop: spacing.sm,
-    paddingHorizontal: spacing.lg,
-  },
-  emptyButton: {
-    marginTop: spacing.lg,
-    backgroundColor: colors.primary,
-    paddingVertical: spacing.md,
-    paddingHorizontal: spacing.xl,
-    borderRadius: borderRadius.md,
-  },
-  emptyButtonText: {
-    color: '#FFF',
-    fontSize: fontSize.md,
     fontWeight: fontWeight.semibold,
   },
-  emptyTabContainer: {
-    alignItems: 'center',
-    paddingVertical: spacing.xxl,
+  laterButton: {
+    backgroundColor: colors.backgroundLight,
   },
-  emptyTabTitle: {
-    color: colors.text,
-    fontSize: fontSize.lg,
-    fontWeight: fontWeight.semibold,
-    marginTop: spacing.md,
-  },
-  emptyTabText: {
-    color: colors.textSecondary,
-    fontSize: fontSize.sm,
-    textAlign: 'center',
-    marginTop: spacing.sm,
-    paddingHorizontal: spacing.lg,
-  },
-  // Rejected connections styles
-  rejectedHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+  declineButton: {
+    backgroundColor: colors.backgroundLight,
   },
   rejectedCard: {
-    backgroundColor: colors.backgroundCard,
-    borderRadius: borderRadius.lg,
-    padding: spacing.md,
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: spacing.sm,
     opacity: 0.7,
   },
   rejectedPhoto: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: colors.backgroundLight,
+    opacity: 0.5,
   },
-  rejectedInfo: {
-    flex: 1,
-    marginLeft: spacing.md,
+  rejectionReasonContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.xs,
+    backgroundColor: colors.errorLight,
+    padding: spacing.xs,
+    borderRadius: borderRadius.sm,
   },
-  rejectedName: {
-    color: colors.textMuted,
-    fontSize: fontSize.md,
+  rejectionReason: {
+    fontSize: fontSize.sm,
+    color: colors.error,
     fontWeight: fontWeight.medium,
   },
-  rejectedText: {
-    color: colors.textMuted,
+  emptyState: {
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: spacing.xxxl,
+    paddingHorizontal: spacing.lg,
+    minHeight: 400,
+    gap: spacing.md,
+  },
+  emptyTitle: {
+    fontSize: fontSize.lg,
+    fontWeight: fontWeight.bold,
+    color: colors.text,
+    textAlign: "center",
+  },
+  emptyDescription: {
+    fontSize: fontSize.md,
+    color: colors.textSecondary,
+    textAlign: "center",
+    paddingHorizontal: spacing.xl,
+  },
+  dissolvedCard: {
+    opacity: 0.8,
+    borderLeftWidth: 3,
+    borderLeftColor: colors.error,
+  },
+  dissolvedPhoto: {
+    opacity: 0.5,
+  },
+  dissolvedReasonContainer: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: spacing.xs,
+    backgroundColor: colors.errorLight,
+    padding: spacing.sm,
+    borderRadius: borderRadius.sm,
+    marginTop: spacing.xs,
+  },
+  dissolvedReasonText: {
     fontSize: fontSize.sm,
-  },
-  encouragementBanner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.primary + '15',
-    borderRadius: borderRadius.md,
-    padding: spacing.md,
-    marginBottom: spacing.md,
-    gap: spacing.sm,
-  },
-  encouragementText: {
+    color: colors.error,
     flex: 1,
-    color: colors.primary,
-    fontSize: fontSize.sm,
+    lineHeight: 18,
   },
 });

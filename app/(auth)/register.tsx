@@ -1,59 +1,370 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
   StyleSheet,
+  TouchableOpacity,
+  Dimensions,
+  Image,
+  TextInput,
+  ScrollView,
   KeyboardAvoidingView,
   Platform,
-  ScrollView,
-  TouchableOpacity,
-} from 'react-native';
-import { router } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
-import { Button, Input, Modal } from '../../src/components';
-import { useAuthStore } from '../../src/store/auth.store';
-import { colors, fontSize, fontWeight, spacing, borderRadius } from '../../src/utils/theme';
+} from "react-native";
+import { router } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
+import * as ImagePicker from "expo-image-picker";
+import Animated, {
+  FadeIn,
+  FadeInDown,
+  FadeInUp,
+  useSharedValue,
+  useAnimatedStyle,
+  withSpring,
+  withTiming,
+} from "react-native-reanimated";
+import { Button, Modal, InterestsPicker } from "../../src/components";
+import { useAuthStore } from "../../src/store/auth.store";
+import {
+  colors,
+  fontSize,
+  fontWeight,
+  spacing,
+  borderRadius,
+} from "../../src/utils/theme";
 
+const { width } = Dimensions.get("window");
+const TOTAL_STEPS = 8;
+
+// Data options
 const GENDERS = [
-  { value: 'MALE', label: 'Hombre' },
-  { value: 'FEMALE', label: 'Mujer' },
-  { value: 'NON_BINARY', label: 'No binario' },
-  { value: 'OTHER', label: 'Otro' },
+  { value: "MALE", label: "Hombre", icon: "male" },
+  { value: "FEMALE", label: "Mujer", icon: "female" },
+  { value: "NON_BINARY", label: "No binario", icon: "transgender" },
+  { value: "OTHER", label: "Otro", icon: "ellipsis-horizontal" },
 ];
+
+const LOOKING_FOR_OPTIONS = [
+  {
+    value: "amistad",
+    label: "Amistad",
+    icon: "people",
+    desc: "Conocer nuevos amigos",
+  },
+  {
+    value: "relacion",
+    label: "Relacion seria",
+    icon: "heart",
+    desc: "Algo a largo plazo",
+  },
+  {
+    value: "casual",
+    label: "Algo casual",
+    icon: "cafe",
+    desc: "Sin presiones",
+  },
+  {
+    value: "nosedice",
+    label: "Que fluya",
+    icon: "sparkles",
+    desc: "Lo que surja",
+  },
+];
+
+// Animated chip component
+const AnimatedChip = ({
+  item,
+  isSelected,
+  onPress,
+  index,
+  showIcon = true,
+  showDesc = false,
+}: {
+  item: { value: string; label: string; icon?: string; desc?: string };
+  isSelected: boolean;
+  onPress: () => void;
+  index: number;
+  showIcon?: boolean;
+  showDesc?: boolean;
+}) => {
+  const scale = useSharedValue(1);
+
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value }],
+  }));
+
+  const handlePress = () => {
+    scale.value = withSpring(0.95, {}, () => {
+      scale.value = withSpring(1);
+    });
+    onPress();
+  };
+
+  return (
+    <Animated.View
+      entering={FadeInDown.delay(index * 50).springify()}
+      style={animatedStyle}
+    >
+      <TouchableOpacity
+        style={[
+          styles.chip,
+          isSelected && styles.chipSelected,
+          showDesc && styles.chipLarge,
+        ]}
+        onPress={handlePress}
+        activeOpacity={0.8}
+      >
+        {showIcon && item.icon && (
+          <Ionicons
+            name={item.icon as any}
+            size={showDesc ? 28 : 20}
+            color={isSelected ? colors.primary : colors.textSecondary}
+          />
+        )}
+        <View style={showDesc ? styles.chipTextContainer : undefined}>
+          <Text
+            style={[styles.chipText, isSelected && styles.chipTextSelected]}
+          >
+            {item.label}
+          </Text>
+          {showDesc && item.desc && (
+            <Text style={styles.chipDesc}>{item.desc}</Text>
+          )}
+        </View>
+        {isSelected && (
+          <Animated.View
+            entering={FadeIn.duration(200)}
+            style={styles.chipCheck}
+          >
+            <Ionicons
+              name="checkmark-circle"
+              size={18}
+              color={colors.primary}
+            />
+          </Animated.View>
+        )}
+      </TouchableOpacity>
+    </Animated.View>
+  );
+};
+
+// Photo picker component
+const PhotoSlot = ({
+  photo,
+  onPress,
+  index,
+  isMain = false,
+}: {
+  photo: string | null;
+  onPress: () => void;
+  index: number;
+  isMain?: boolean;
+}) => {
+  return (
+    <Animated.View entering={FadeInDown.delay(index * 100).springify()}>
+      <TouchableOpacity
+        style={[styles.photoSlot, isMain && styles.photoSlotMain]}
+        onPress={onPress}
+        activeOpacity={0.8}
+      >
+        {photo ? (
+          <>
+            <Image source={{ uri: photo }} style={styles.photoImage} />
+            <View style={styles.photoOverlay}>
+              <Ionicons name="pencil" size={20} color={colors.text} />
+            </View>
+          </>
+        ) : (
+          <View style={styles.photoPlaceholder}>
+            <Ionicons
+              name="add"
+              size={isMain ? 40 : 28}
+              color={colors.textMuted}
+            />
+            {isMain && <Text style={styles.photoMainText}>Foto principal</Text>}
+          </View>
+        )}
+        {isMain && photo && (
+          <View style={styles.mainBadge}>
+            <Text style={styles.mainBadgeText}>Principal</Text>
+          </View>
+        )}
+      </TouchableOpacity>
+    </Animated.View>
+  );
+};
+
+// Age selector with horizontal scroll
+const AgeSelector = ({
+  value,
+  onChange,
+}: {
+  value: number;
+  onChange: (age: number) => void;
+}) => {
+  const ages = Array.from({ length: 63 }, (_, i) => i + 18); // 18-80
+
+  return (
+    <Animated.View
+      entering={FadeInDown.springify()}
+      style={styles.ageContainer}
+    >
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.ageScroll}
+      >
+        {ages.map((age, index) => (
+          <Animated.View
+            key={age}
+            entering={FadeInDown.delay(index * 15).springify()}
+          >
+            <TouchableOpacity
+              style={[styles.ageItem, value === age && styles.ageItemSelected]}
+              onPress={() => onChange(age)}
+              activeOpacity={0.7}
+            >
+              <Text
+                style={[
+                  styles.ageText,
+                  value === age && styles.ageTextSelected,
+                ]}
+              >
+                {age}
+              </Text>
+            </TouchableOpacity>
+          </Animated.View>
+        ))}
+      </ScrollView>
+    </Animated.View>
+  );
+};
 
 export default function RegisterScreen() {
   const { register, isLoading, error, clearError } = useAuthStore();
   const [step, setStep] = useState(1);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [showErrorModal, setShowErrorModal] = useState(false);
+
   const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    password: '',
-    birthDate: '',
-    gender: '',
+    name: "",
+    email: "",
+    password: "",
+    age: 18,
+    gender: "",
     interestedIn: [] as string[],
-    bio: '',
+    interests: [] as string[],
+    lookingFor: [] as string[],
+    photos: [] as string[],
+    bio: "",
   });
+
+  const progress = useSharedValue(1 / TOTAL_STEPS);
+
+  useEffect(() => {
+    progress.value = withTiming(step / TOTAL_STEPS, { duration: 300 });
+  }, [step]);
+
+  const progressStyle = useAnimatedStyle(() => ({
+    width: `${progress.value * 100}%`,
+  }));
 
   const updateField = (field: string, value: any) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
-  const toggleInterest = (gender: string) => {
+  const toggleArrayField = (
+    field: "interestedIn" | "interests" | "lookingFor",
+    value: string,
+  ) => {
     setFormData((prev) => ({
       ...prev,
-      interestedIn: prev.interestedIn.includes(gender)
-        ? prev.interestedIn.filter((g) => g !== gender)
-        : [...prev.interestedIn, gender],
+      [field]: prev[field].includes(value)
+        ? prev[field].filter((v) => v !== value)
+        : [...prev[field], value],
     }));
   };
 
-  const handleRegister = async () => {
-    const success = await register({
-      ...formData,
-      birthDate: new Date(formData.birthDate).toISOString(),
+  const nextStep = () => {
+    if (step < TOTAL_STEPS) {
+      setStep(step + 1);
+    }
+  };
+
+  const prevStep = () => {
+    if (step > 1) {
+      setStep(step - 1);
+    } else {
+      router.back();
+    }
+  };
+
+  const pickImage = async (index: number) => {
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [3, 4],
+      quality: 0.8,
     });
+
+    if (!result.canceled) {
+      const newPhotos = [...formData.photos];
+      newPhotos[index] = result.assets[0].uri;
+      updateField("photos", newPhotos);
+    }
+  };
+
+  const canProceed = () => {
+    switch (step) {
+      case 1:
+        return formData.name.length >= 2;
+      case 2: {
+        const pwValid =
+          formData.password.length >= 8 &&
+          /[A-Z]/.test(formData.password) &&
+          /[0-9]/.test(formData.password) &&
+          /[^a-zA-Z0-9]/.test(formData.password);
+        return (
+          formData.email.includes("@") && formData.email.length > 5 && pwValid
+        );
+      }
+      case 3:
+        return formData.age >= 18;
+      case 4:
+        return formData.gender !== "";
+      case 5:
+        return formData.interestedIn.length > 0;
+      case 6:
+        return formData.interests.length >= 5;
+      case 7:
+        return formData.lookingFor.length > 0;
+      case 8:
+        return formData.photos.length >= 2;
+      default:
+        return true;
+    }
+  };
+
+  const handleRegister = async () => {
+    // Calculate birthDate from age
+    const today = new Date();
+    const birthYear = today.getFullYear() - formData.age;
+    const birthDate = new Date(birthYear, today.getMonth(), today.getDate());
+
+    const success = await register({
+      name: formData.name,
+      email: formData.email,
+      password: formData.password,
+      birthDate: birthDate.toISOString(),
+      gender: formData.gender,
+      interestedIn: formData.interestedIn,
+      interests: formData.interests,
+      lookingFor: formData.lookingFor,
+      photos: formData.photos,
+      bio: formData.bio,
+    });
+
     if (success) {
       setShowSuccessModal(true);
     } else {
@@ -63,7 +374,7 @@ export default function RegisterScreen() {
 
   const handleSuccessModalClose = () => {
     setShowSuccessModal(false);
-    router.replace('/(tabs)');
+    router.replace("/(tabs)");
   };
 
   const handleErrorModalClose = () => {
@@ -71,146 +382,434 @@ export default function RegisterScreen() {
     clearError();
   };
 
-  const canProceed = () => {
-    switch (step) {
-      case 1:
-        return formData.name && formData.email && formData.password.length >= 6;
-      case 2:
-        return formData.birthDate && formData.gender;
-      case 3:
-        return formData.interestedIn.length > 0;
-      default:
-        return true;
-    }
-  };
-
   const renderStep = () => {
     switch (step) {
       case 1:
         return (
-          <View style={styles.stepContent}>
-            <Text style={styles.stepTitle}>Datos básicos</Text>
-            <Text style={styles.stepSubtitle}>Comencemos con lo esencial</Text>
+          <Animated.View
+            key="step1"
+            entering={FadeInDown.springify()}
+            style={styles.stepContent}
+          >
+            <View style={styles.stepHeader}>
+              <Animated.Text
+                entering={FadeInDown.delay(100)}
+                style={styles.emoji}
+              >
+                👋
+              </Animated.Text>
+              <Animated.Text
+                entering={FadeInDown.delay(200)}
+                style={styles.stepTitle}
+              >
+                Como te llamas?
+              </Animated.Text>
+              <Animated.Text
+                entering={FadeInDown.delay(300)}
+                style={styles.stepSubtitle}
+              >
+                Asi te veran los demas
+              </Animated.Text>
+            </View>
 
-            <Input
-              label="Nombre"
-              placeholder="Tu nombre"
-              value={formData.name}
-              onChangeText={(v) => updateField('name', v)}
-              leftIcon="person-outline"
-            />
-
-            <Input
-              label="Email"
-              placeholder="tu@email.com"
-              keyboardType="email-address"
-              autoCapitalize="none"
-              value={formData.email}
-              onChangeText={(v) => updateField('email', v)}
-              leftIcon="mail-outline"
-            />
-
-            <Input
-              label="Contraseña"
-              placeholder="Mínimo 6 caracteres"
-              secureTextEntry
-              value={formData.password}
-              onChangeText={(v) => updateField('password', v)}
-              leftIcon="lock-closed-outline"
-              error={
-                formData.password && formData.password.length < 6
-                  ? 'Mínimo 6 caracteres'
-                  : undefined
-              }
-            />
-          </View>
+            <Animated.View entering={FadeInUp.delay(400).springify()}>
+              <TextInput
+                style={styles.bigInput}
+                placeholder="Tu nombre"
+                placeholderTextColor={colors.textMuted}
+                value={formData.name}
+                onChangeText={(v) =>
+                  updateField(
+                    "name",
+                    v.replace(/[^a-zA-ZáéíóúÁÉÍÓÚñÑüÜàèìòùÀÈÌÒÙ]/g, ""),
+                  )
+                }
+                autoFocus
+                autoCapitalize="words"
+              />
+            </Animated.View>
+          </Animated.View>
         );
 
       case 2:
         return (
-          <View style={styles.stepContent}>
-            <Text style={styles.stepTitle}>Sobre ti</Text>
-            <Text style={styles.stepSubtitle}>Cuéntanos un poco más</Text>
-
-            <Input
-              label="Fecha de nacimiento"
-              placeholder="YYYY-MM-DD"
-              value={formData.birthDate}
-              onChangeText={(v) => updateField('birthDate', v)}
-              leftIcon="calendar-outline"
-            />
-
-            <Text style={styles.label}>Género</Text>
-            <View style={styles.optionsGrid}>
-              {GENDERS.map((gender) => (
-                <TouchableOpacity
-                  key={gender.value}
-                  style={[
-                    styles.optionButton,
-                    formData.gender === gender.value && styles.optionSelected,
-                  ]}
-                  onPress={() => updateField('gender', gender.value)}
-                >
-                  <Text
-                    style={[
-                      styles.optionText,
-                      formData.gender === gender.value && styles.optionTextSelected,
-                    ]}
-                  >
-                    {gender.label}
-                  </Text>
-                </TouchableOpacity>
-              ))}
+          <Animated.View
+            key="step2"
+            entering={FadeInDown.springify()}
+            style={styles.stepContent}
+          >
+            <View style={styles.stepHeader}>
+              <Animated.Text
+                entering={FadeInDown.delay(100)}
+                style={styles.emoji}
+              >
+                🔐
+              </Animated.Text>
+              <Animated.Text
+                entering={FadeInDown.delay(200)}
+                style={styles.stepTitle}
+              >
+                Tu cuenta
+              </Animated.Text>
+              <Animated.Text
+                entering={FadeInDown.delay(300)}
+                style={styles.stepSubtitle}
+              >
+                Email y contraseña para ingresar
+              </Animated.Text>
             </View>
-          </View>
+
+            <Animated.View
+              entering={FadeInUp.delay(400).springify()}
+              style={styles.inputGroup}
+            >
+              <View style={styles.inputContainer}>
+                <Ionicons
+                  name="mail-outline"
+                  size={20}
+                  color={colors.textMuted}
+                />
+                <TextInput
+                  style={styles.input}
+                  placeholder="tu@email.com"
+                  placeholderTextColor={colors.textMuted}
+                  value={formData.email}
+                  onChangeText={(v) => updateField("email", v.toLowerCase())}
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                />
+              </View>
+
+              <View style={styles.inputContainer}>
+                <Ionicons
+                  name="lock-closed-outline"
+                  size={20}
+                  color={colors.textMuted}
+                />
+                <TextInput
+                  style={styles.input}
+                  placeholder="Contraseña"
+                  placeholderTextColor={colors.textMuted}
+                  value={formData.password}
+                  onChangeText={(v) => updateField("password", v)}
+                  secureTextEntry
+                />
+              </View>
+            </Animated.View>
+
+            {/* Password requirements */}
+            {formData.password.length > 0 && (
+              <Animated.View
+                entering={FadeIn.duration(200)}
+                style={styles.passwordReqs}
+              >
+                {[
+                  {
+                    label: "Mínimo 8 caracteres",
+                    met: formData.password.length >= 8,
+                  },
+                  {
+                    label: "Una letra mayúscula",
+                    met: /[A-Z]/.test(formData.password),
+                  },
+                  {
+                    label: "Un número",
+                    met: /[0-9]/.test(formData.password),
+                  },
+                  {
+                    label: "Un símbolo (!@#$...)",
+                    met: /[^a-zA-Z0-9]/.test(formData.password),
+                  },
+                ].map((req) => (
+                  <View key={req.label} style={styles.reqRow}>
+                    <Ionicons
+                      name={req.met ? "checkmark-circle" : "ellipse-outline"}
+                      size={14}
+                      color={req.met ? colors.success : colors.textMuted}
+                    />
+                    <Text
+                      style={[styles.reqText, req.met && styles.reqTextMet]}
+                    >
+                      {req.label}
+                    </Text>
+                  </View>
+                ))}
+              </Animated.View>
+            )}
+          </Animated.View>
         );
 
       case 3:
         return (
-          <View style={styles.stepContent}>
-            <Text style={styles.stepTitle}>¿Quién te interesa?</Text>
-            <Text style={styles.stepSubtitle}>Puedes elegir más de uno</Text>
-
-            <View style={styles.optionsGrid}>
-              {GENDERS.map((gender) => (
-                <TouchableOpacity
-                  key={gender.value}
-                  style={[
-                    styles.optionButton,
-                    formData.interestedIn.includes(gender.value) && styles.optionSelected,
-                  ]}
-                  onPress={() => toggleInterest(gender.value)}
-                >
-                  <Text
-                    style={[
-                      styles.optionText,
-                      formData.interestedIn.includes(gender.value) && styles.optionTextSelected,
-                    ]}
-                  >
-                    {gender.label}
-                  </Text>
-                </TouchableOpacity>
-              ))}
+          <Animated.View
+            key="step3"
+            entering={FadeInDown.springify()}
+            style={styles.stepContent}
+          >
+            <View style={styles.stepHeader}>
+              <Animated.Text
+                entering={FadeInDown.delay(100)}
+                style={styles.emoji}
+              >
+                🎂
+              </Animated.Text>
+              <Animated.Text
+                entering={FadeInDown.delay(200)}
+                style={styles.stepTitle}
+              >
+                ¿Cuántos años tienes?
+              </Animated.Text>
+              <Animated.Text
+                entering={FadeInDown.delay(300)}
+                style={styles.stepSubtitle}
+              >
+                Debes ser mayor de 18
+              </Animated.Text>
             </View>
-          </View>
+
+            <AgeSelector
+              value={formData.age}
+              onChange={(age) => updateField("age", age)}
+            />
+
+            <Animated.View
+              entering={FadeIn.delay(500)}
+              style={styles.ageDisplay}
+            >
+              <Text style={styles.ageDisplayText}>{formData.age} años</Text>
+            </Animated.View>
+          </Animated.View>
         );
 
       case 4:
         return (
-          <View style={styles.stepContent}>
-            <Text style={styles.stepTitle}>Tu bio</Text>
-            <Text style={styles.stepSubtitle}>Opcional, pero ayuda a conocerte</Text>
+          <Animated.View
+            key="step4"
+            entering={FadeInDown.springify()}
+            style={styles.stepContent}
+          >
+            <View style={styles.stepHeader}>
+              <Animated.Text
+                entering={FadeInDown.delay(100)}
+                style={styles.emoji}
+              >
+                ✨
+              </Animated.Text>
+              <Animated.Text
+                entering={FadeInDown.delay(200)}
+                style={styles.stepTitle}
+              >
+                Como te identificas?
+              </Animated.Text>
+            </View>
 
-            <Input
-              label="Cuéntanos sobre ti"
-              placeholder="Me gusta..."
-              multiline
-              numberOfLines={4}
-              value={formData.bio}
-              onChangeText={(v) => updateField('bio', v)}
-              containerStyle={styles.bioInput}
-            />
-          </View>
+            <View style={styles.genderGrid}>
+              {GENDERS.map((gender, index) => (
+                <AnimatedChip
+                  key={gender.value}
+                  item={gender}
+                  isSelected={formData.gender === gender.value}
+                  onPress={() => updateField("gender", gender.value)}
+                  index={index}
+                  showDesc={false}
+                />
+              ))}
+            </View>
+          </Animated.View>
+        );
+
+      case 5:
+        return (
+          <Animated.View
+            key="step5"
+            entering={FadeInDown.springify()}
+            style={styles.stepContent}
+          >
+            <View style={styles.stepHeader}>
+              <Animated.Text
+                entering={FadeInDown.delay(100)}
+                style={styles.emoji}
+              >
+                💕
+              </Animated.Text>
+              <Animated.Text
+                entering={FadeInDown.delay(200)}
+                style={styles.stepTitle}
+              >
+                Quien te interesa?
+              </Animated.Text>
+              <Animated.Text
+                entering={FadeInDown.delay(300)}
+                style={styles.stepSubtitle}
+              >
+                Puedes elegir mas de uno
+              </Animated.Text>
+            </View>
+
+            <View style={styles.genderGrid}>
+              {GENDERS.map((gender, index) => (
+                <AnimatedChip
+                  key={gender.value}
+                  item={gender}
+                  isSelected={formData.interestedIn.includes(gender.value)}
+                  onPress={() => toggleArrayField("interestedIn", gender.value)}
+                  index={index}
+                />
+              ))}
+            </View>
+          </Animated.View>
+        );
+
+      case 6:
+        return (
+          <Animated.View
+            key="step6"
+            entering={FadeInDown.springify()}
+            style={styles.stepContent}
+          >
+            <View style={styles.stepHeader}>
+              <Animated.Text
+                entering={FadeInDown.delay(100)}
+                style={styles.emoji}
+              >
+                🎯
+              </Animated.Text>
+              <Animated.Text
+                entering={FadeInDown.delay(200)}
+                style={styles.stepTitle}
+              >
+                Que te gusta?
+              </Animated.Text>
+              <Animated.Text
+                entering={FadeInDown.delay(300)}
+                style={styles.stepSubtitle}
+              >
+                Elige al menos 5 intereses (máx. 10)
+              </Animated.Text>
+            </View>
+
+            <ScrollView
+              style={styles.interestsScroll}
+              showsVerticalScrollIndicator={false}
+            >
+              <InterestsPicker
+                selected={formData.interests}
+                onChange={(interests) =>
+                  setFormData((prev) => ({ ...prev, interests }))
+                }
+              />
+            </ScrollView>
+          </Animated.View>
+        );
+
+      case 7:
+        return (
+          <Animated.View
+            key="step7"
+            entering={FadeInDown.springify()}
+            style={styles.stepContent}
+          >
+            <View style={styles.stepHeader}>
+              <Animated.Text
+                entering={FadeInDown.delay(100)}
+                style={styles.emoji}
+              >
+                🔮
+              </Animated.Text>
+              <Animated.Text
+                entering={FadeInDown.delay(200)}
+                style={styles.stepTitle}
+              >
+                Que buscas?
+              </Animated.Text>
+              <Animated.Text
+                entering={FadeInDown.delay(300)}
+                style={styles.stepSubtitle}
+              >
+                Puedes elegir varias opciones
+              </Animated.Text>
+            </View>
+
+            <View style={styles.lookingForGrid}>
+              {LOOKING_FOR_OPTIONS.map((option, index) => (
+                <AnimatedChip
+                  key={option.value}
+                  item={option}
+                  isSelected={formData.lookingFor.includes(option.value)}
+                  onPress={() => toggleArrayField("lookingFor", option.value)}
+                  index={index}
+                  showDesc={true}
+                />
+              ))}
+            </View>
+          </Animated.View>
+        );
+
+      case 8:
+        return (
+          <Animated.View
+            key="step8"
+            entering={FadeInDown.springify()}
+            style={styles.stepContent}
+          >
+            <View style={styles.stepHeader}>
+              <Animated.Text
+                entering={FadeInDown.delay(100)}
+                style={styles.emoji}
+              >
+                📸
+              </Animated.Text>
+              <Animated.Text
+                entering={FadeInDown.delay(200)}
+                style={styles.stepTitle}
+              >
+                Tus fotos
+              </Animated.Text>
+              <Animated.Text
+                entering={FadeInDown.delay(300)}
+                style={styles.stepSubtitle}
+              >
+                Agrega al menos 2 fotos
+              </Animated.Text>
+            </View>
+
+            <View style={styles.photosGrid}>
+              <PhotoSlot
+                photo={formData.photos[0] || null}
+                onPress={() => pickImage(0)}
+                index={0}
+                isMain={true}
+              />
+              <View style={styles.photosSmall}>
+                {[1, 2, 3, 4].map((i) => (
+                  <PhotoSlot
+                    key={i}
+                    photo={formData.photos[i] || null}
+                    onPress={() => pickImage(i)}
+                    index={i}
+                  />
+                ))}
+              </View>
+            </View>
+
+            {/* Optional bio */}
+            <Animated.View
+              entering={FadeInUp.delay(600)}
+              style={styles.bioSection}
+            >
+              <Text style={styles.bioLabel}>Bio (opcional)</Text>
+              <TextInput
+                style={styles.bioInput}
+                placeholder="Cuentanos algo sobre ti..."
+                placeholderTextColor={colors.textMuted}
+                value={formData.bio}
+                onChangeText={(v) => updateField("bio", v)}
+                multiline
+                maxLength={300}
+              />
+              <Text style={styles.bioCount}>{formData.bio.length}/300</Text>
+            </Animated.View>
+          </Animated.View>
         );
 
       default:
@@ -219,97 +818,81 @@ export default function RegisterScreen() {
   };
 
   return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-    >
-      <ScrollView
-        contentContainerStyle={styles.scrollContent}
-        keyboardShouldPersistTaps="handled"
-      >
-        {/* Header */}
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => (step > 1 ? setStep(step - 1) : router.back())}
-        >
+    <View style={styles.container}>
+      <LinearGradient
+        colors={[colors.background, colors.backgroundLight]}
+        style={StyleSheet.absoluteFill}
+      />
+
+      {/* Header */}
+      <View style={styles.header}>
+        <TouchableOpacity style={styles.backButton} onPress={prevStep}>
           <Ionicons name="arrow-back" size={24} color={colors.text} />
         </TouchableOpacity>
 
-        {/* Progress */}
-        <View style={styles.progress}>
-          {[1, 2, 3, 4].map((s) => (
-            <View
-              key={s}
-              style={[
-                styles.progressDot,
-                s <= step && styles.progressDotActive,
-                s === step && styles.progressDotCurrent,
-              ]}
-            />
-          ))}
+        {/* Progress bar */}
+        <View style={styles.progressBar}>
+          <Animated.View style={[styles.progressFill, progressStyle]} />
         </View>
 
-        {/* Error */}
-        {error && (
-          <View style={styles.errorContainer}>
-            <Ionicons name="alert-circle" size={20} color={colors.error} />
-            <Text style={styles.errorText}>{error}</Text>
-            <TouchableOpacity onPress={clearError}>
-              <Ionicons name="close" size={20} color={colors.error} />
-            </TouchableOpacity>
-          </View>
-        )}
+        <Text style={styles.stepIndicator}>
+          {step}/{TOTAL_STEPS}
+        </Text>
+      </View>
 
-        {/* Step content */}
-        {renderStep()}
+      {/* Content */}
+      <KeyboardAvoidingView
+        style={styles.content}
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
+      >
+        <ScrollView
+          style={styles.scrollView}
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+        >
+          {renderStep()}
+        </ScrollView>
 
-        {/* Actions */}
-        <View style={styles.actions}>
-          {step < 4 ? (
+        {/* Footer */}
+        <Animated.View entering={FadeInUp.delay(500)} style={styles.footer}>
+          {step < TOTAL_STEPS ? (
             <Button
               title="Continuar"
-              onPress={() => setStep(step + 1)}
+              onPress={nextStep}
               disabled={!canProceed()}
               fullWidth
               size="lg"
             />
           ) : (
             <Button
-              title="Crear cuenta"
+              title="Crear mi cuenta"
               onPress={handleRegister}
               loading={isLoading}
+              disabled={!canProceed()}
               fullWidth
               size="lg"
             />
           )}
 
-          {step === 4 && (
-            <Button
-              title="Omitir bio"
-              onPress={handleRegister}
-              variant="ghost"
-              fullWidth
-              disabled={isLoading}
-            />
+          {(step === 1 || step === 2) && (
+            <View style={styles.loginLink}>
+              <Text style={styles.loginText}>Ya tienes cuenta? </Text>
+              <TouchableOpacity onPress={() => router.replace("/(auth)/login")}>
+                <Text style={styles.loginLinkText}>Inicia sesion</Text>
+              </TouchableOpacity>
+            </View>
           )}
-        </View>
-
-        {/* Footer */}
-        <View style={styles.footer}>
-          <Text style={styles.footerText}>¿Ya tienes cuenta?</Text>
-          <TouchableOpacity onPress={() => router.replace('/(auth)/login')}>
-            <Text style={styles.footerLink}>Inicia sesión</Text>
-          </TouchableOpacity>
-        </View>
-      </ScrollView>
+        </Animated.View>
+      </KeyboardAvoidingView>
 
       {/* Success Modal */}
       <Modal
         visible={showSuccessModal}
         onClose={handleSuccessModalClose}
         type="success"
-        title="Cuenta creada"
-        message={`Bienvenido a Linka, ${formData.name}! Tu cuenta ha sido creada exitosamente.`}
+        title="Bienvenido a Nuclia!"
+        message={`Hola ${formData.name}! Tu cuenta ha sido creada. Es hora de hacer conexiones.`}
         buttonText="Empezar"
         onButtonPress={handleSuccessModalClose}
         dismissOnBackdrop={false}
@@ -320,12 +903,12 @@ export default function RegisterScreen() {
         visible={showErrorModal}
         onClose={handleErrorModalClose}
         type="error"
-        title="Error al registrar"
-        message={error || 'Ocurrió un error al crear tu cuenta. Por favor intenta de nuevo.'}
+        title="Algo salio mal"
+        message={error || "No pudimos crear tu cuenta. Intenta de nuevo."}
         buttonText="Entendido"
         onButtonPress={handleErrorModalClose}
       />
-    </KeyboardAvoidingView>
+    </View>
   );
 }
 
@@ -334,116 +917,326 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.background,
   },
-  scrollContent: {
-    flexGrow: 1,
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
     paddingHorizontal: spacing.lg,
+    paddingTop: spacing.xxl + spacing.lg,
+    paddingBottom: spacing.md,
+    gap: spacing.md,
   },
   backButton: {
-    marginTop: spacing.xxl,
     width: 40,
     height: 40,
     borderRadius: 20,
     backgroundColor: colors.backgroundCard,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
   },
-  progress: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    gap: spacing.sm,
-    marginTop: spacing.lg,
-    marginBottom: spacing.xl,
-  },
-  progressDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: colors.backgroundCard,
-  },
-  progressDotActive: {
-    backgroundColor: colors.primary,
-  },
-  progressDotCurrent: {
-    width: 24,
-  },
-  errorContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(239, 68, 68, 0.1)',
-    borderRadius: borderRadius.md,
-    padding: spacing.md,
-    gap: spacing.sm,
-    marginBottom: spacing.md,
-  },
-  errorText: {
+  progressBar: {
     flex: 1,
-    color: colors.error,
+    height: 4,
+    backgroundColor: colors.backgroundCard,
+    borderRadius: 2,
+    overflow: "hidden",
+  },
+  progressFill: {
+    height: "100%",
+    backgroundColor: colors.primary,
+    borderRadius: 2,
+  },
+  stepIndicator: {
+    color: colors.textMuted,
     fontSize: fontSize.sm,
+    width: 35,
+    textAlign: "right",
+  },
+  content: {
+    flex: 1,
+  },
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
+    flexGrow: 1,
+    paddingHorizontal: spacing.lg,
   },
   stepContent: {
     flex: 1,
+    paddingTop: spacing.xl,
+  },
+  stepHeader: {
+    alignItems: "center",
+    marginBottom: spacing.xl,
+  },
+  emoji: {
+    fontSize: 48,
+    marginBottom: spacing.md,
   },
   stepTitle: {
     color: colors.text,
     fontSize: fontSize.xxl,
-    fontWeight: fontWeight.bold,
+    fontFamily: "CormorantGaramond_500Medium",
+    textAlign: "center",
     marginBottom: spacing.xs,
   },
   stepSubtitle: {
     color: colors.textSecondary,
     fontSize: fontSize.md,
-    marginBottom: spacing.xl,
+    textAlign: "center",
   },
-  label: {
+  bigInput: {
+    backgroundColor: colors.backgroundCard,
+    borderRadius: borderRadius.xl,
+    paddingHorizontal: spacing.xl,
+    paddingVertical: spacing.lg,
     color: colors.text,
-    fontSize: fontSize.sm,
-    marginBottom: spacing.sm,
+    fontFamily: "Inter_400Regular",
+    fontSize: fontSize.xl,
+    textAlign: "center",
   },
-  optionsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
+  inputGroup: {
+    gap: spacing.md,
+  },
+  inputContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: colors.backgroundCard,
+    borderRadius: borderRadius.lg,
+    paddingHorizontal: spacing.md,
     gap: spacing.sm,
   },
-  optionButton: {
+  input: {
+    flex: 1,
+    paddingVertical: spacing.md,
+    color: colors.text,
+    fontSize: fontSize.md,
+  },
+  passwordReqs: {
+    gap: 6,
+    paddingHorizontal: spacing.xs,
+  },
+  reqRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
+  reqText: {
+    color: colors.textMuted,
+    fontSize: fontSize.xs,
+  },
+  reqTextMet: {
+    color: colors.success,
+  },
+  ageContainer: {
+    marginTop: spacing.lg,
+  },
+  ageScroll: {
+    paddingHorizontal: spacing.md,
+    gap: spacing.sm,
+  },
+  ageItem: {
+    width: 60,
+    height: 60,
+    justifyContent: "center",
+    alignItems: "center",
+    borderRadius: 30,
+    backgroundColor: colors.backgroundCard,
+    marginHorizontal: 4,
+  },
+  ageItemSelected: {
+    backgroundColor: colors.primary,
+    transform: [{ scale: 1.1 }],
+  },
+  ageText: {
+    color: colors.textMuted,
+    fontSize: fontSize.lg,
+    fontWeight: fontWeight.medium,
+  },
+  ageTextSelected: {
+    color: colors.text,
+    fontWeight: fontWeight.bold,
+    fontSize: fontSize.xl,
+  },
+  ageDisplay: {
+    alignItems: "center",
+    marginTop: spacing.xl,
+  },
+  ageDisplayText: {
+    color: colors.text,
+    fontSize: fontSize.xxxl,
+    fontWeight: fontWeight.bold,
+  },
+  genderGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "center",
+    gap: spacing.md,
+    marginTop: spacing.lg,
+  },
+  chip: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: colors.backgroundCard,
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.md,
     borderRadius: borderRadius.full,
-    backgroundColor: colors.backgroundCard,
     borderWidth: 2,
-    borderColor: 'transparent',
+    borderColor: "transparent",
+    gap: spacing.sm,
   },
-  optionSelected: {
+  chipSelected: {
     borderColor: colors.primary,
-    backgroundColor: 'rgba(139, 92, 246, 0.1)',
+    backgroundColor: "rgba(139, 92, 246, 0.15)",
   },
-  optionText: {
+  chipLarge: {
+    width: "100%",
+    paddingVertical: spacing.lg,
+    borderRadius: borderRadius.xl,
+  },
+  chipTextContainer: {
+    flex: 1,
+  },
+  chipText: {
     color: colors.text,
     fontSize: fontSize.md,
+    fontWeight: fontWeight.medium,
   },
-  optionTextSelected: {
+  chipTextSelected: {
     color: colors.primary,
+  },
+  chipDesc: {
+    color: colors.textMuted,
+    fontSize: fontSize.sm,
+    marginTop: 2,
+  },
+  chipCheck: {
+    marginLeft: "auto",
+  },
+  interestsScroll: {
+    flex: 1,
+    marginTop: spacing.md,
+  },
+  interestsGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "center",
+    gap: spacing.sm,
+    paddingBottom: spacing.lg,
+  },
+  selectionCount: {
+    alignItems: "center",
+    paddingVertical: spacing.sm,
+  },
+  selectionCountText: {
+    color: colors.primary,
+    fontSize: fontSize.sm,
     fontWeight: fontWeight.semibold,
   },
-  bioInput: {
-    marginBottom: 0,
-  },
-  actions: {
-    marginTop: 'auto',
+  lookingForGrid: {
     gap: spacing.md,
-    paddingVertical: spacing.lg,
+    marginTop: spacing.lg,
+  },
+  photosGrid: {
+    flexDirection: "row",
+    gap: spacing.md,
+    marginTop: spacing.lg,
+  },
+  photosSmall: {
+    flex: 1,
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: spacing.sm,
+  },
+  photoSlot: {
+    width: (width - spacing.lg * 2 - spacing.md - spacing.sm * 2) / 4,
+    aspectRatio: 3 / 4,
+    backgroundColor: colors.backgroundCard,
+    borderRadius: borderRadius.lg,
+    overflow: "hidden",
+  },
+  photoSlotMain: {
+    width: (width - spacing.lg * 2 - spacing.md) / 2,
+  },
+  photoImage: {
+    width: "100%",
+    height: "100%",
+  },
+  photoOverlay: {
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    paddingVertical: spacing.xs,
+    alignItems: "center",
+  },
+  photoPlaceholder: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 2,
+    borderColor: colors.border,
+    borderStyle: "dashed",
+    borderRadius: borderRadius.lg,
+  },
+  photoMainText: {
+    color: colors.textMuted,
+    fontSize: fontSize.xs,
+    marginTop: spacing.xs,
+  },
+  mainBadge: {
+    position: "absolute",
+    top: spacing.xs,
+    left: spacing.xs,
+    backgroundColor: colors.primary,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 2,
+    borderRadius: borderRadius.sm,
+  },
+  mainBadgeText: {
+    color: colors.text,
+    fontSize: fontSize.xs,
+    fontWeight: fontWeight.semibold,
+  },
+  bioSection: {
+    marginTop: spacing.xl,
+  },
+  bioLabel: {
+    color: colors.text,
+    fontSize: fontSize.sm,
+    fontWeight: fontWeight.medium,
+    marginBottom: spacing.sm,
+  },
+  bioInput: {
+    backgroundColor: colors.backgroundCard,
+    borderRadius: borderRadius.lg,
+    padding: spacing.md,
+    color: colors.text,
+    fontSize: fontSize.md,
+    minHeight: 100,
+    textAlignVertical: "top",
+  },
+  bioCount: {
+    color: colors.textMuted,
+    fontSize: fontSize.xs,
+    textAlign: "right",
+    marginTop: spacing.xs,
   },
   footer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: spacing.xs,
+    padding: spacing.lg,
     paddingBottom: spacing.xxl,
   },
-  footerText: {
+  loginLink: {
+    flexDirection: "row",
+    justifyContent: "center",
+    marginTop: spacing.md,
+  },
+  loginText: {
     color: colors.textSecondary,
     fontSize: fontSize.md,
   },
-  footerLink: {
+  loginLinkText: {
     color: colors.primary,
     fontSize: fontSize.md,
     fontWeight: fontWeight.semibold,

@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef } from "react";
 import {
   View,
   Text,
@@ -7,15 +7,22 @@ import {
   ActivityIndicator,
   Image,
   Alert,
-} from 'react-native';
-import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
-import { CameraView, useCameraPermissions } from 'expo-camera';
-import * as ImagePicker from 'expo-image-picker';
-import { api } from '../../../src/services/api';
-import { useNucleusStore } from '../../../src/store/nucleus.store';
-import { colors, fontSize, fontWeight, spacing, borderRadius, shadows } from '../../../src/utils/theme';
+} from "react-native";
+import { useLocalSearchParams, useRouter, Stack } from "expo-router";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { Ionicons } from "@expo/vector-icons";
+import { CameraView, useCameraPermissions } from "expo-camera";
+import * as ImagePicker from "expo-image-picker";
+import { api } from "../../../src/services/api";
+import { useNucleusStore } from "../../../src/store/nucleus.store";
+import {
+  colors,
+  fontSize,
+  fontWeight,
+  spacing,
+  borderRadius,
+  shadows,
+} from "../../../src/utils/theme";
 
 interface PhotosData {
   userPhoto: { photoUrl: string; prompt: string } | null;
@@ -35,7 +42,7 @@ export default function PhotosScreen() {
   const [showCamera, setShowCamera] = useState(false);
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
-  const [cameraFacing, setCameraFacing] = useState<'front' | 'back'>('back');
+  const [cameraFacing, setCameraFacing] = useState<"front" | "back">("back");
 
   const cameraRef = useRef<CameraView>(null);
 
@@ -48,7 +55,7 @@ export default function PhotosScreen() {
       const response = await api.get(`/nucleus/${id}/photos`);
       setPhotosData(response.data);
     } catch (error) {
-      console.error('Error loading photos data:', error);
+      console.error("Error loading photos data:", error);
     } finally {
       setIsLoading(false);
     }
@@ -66,26 +73,8 @@ export default function PhotosScreen() {
         setShowCamera(false);
       }
     } catch (error) {
-      console.error('Error taking photo:', error);
-      Alert.alert('Error', 'No se pudo tomar la foto');
-    }
-  };
-
-  const handlePickImage = async () => {
-    try {
-      const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        allowsEditing: true,
-        aspect: [1, 1],
-        quality: 0.8,
-      });
-
-      if (!result.canceled && result.assets[0]) {
-        setCapturedImage(result.assets[0].uri);
-      }
-    } catch (error) {
-      console.error('Error picking image:', error);
-      Alert.alert('Error', 'No se pudo seleccionar la imagen');
+      console.error("Error taking photo:", error);
+      Alert.alert("Error", "No se pudo tomar la foto");
     }
   };
 
@@ -103,15 +92,15 @@ export default function PhotosScreen() {
         setCapturedImage(null);
       }
     } catch (error) {
-      console.error('Error uploading photo:', error);
-      Alert.alert('Error', 'No se pudo subir la foto');
+      console.error("Error uploading photo:", error);
+      Alert.alert("Error", "No se pudo subir la foto");
     } finally {
       setIsUploading(false);
     }
   };
 
   const toggleCameraFacing = () => {
-    setCameraFacing(current => current === 'back' ? 'front' : 'back');
+    setCameraFacing((current) => (current === "back" ? "front" : "back"));
   };
 
   if (isLoading) {
@@ -120,7 +109,7 @@ export default function PhotosScreen() {
         <Stack.Screen
           options={{
             headerShown: true,
-            headerTitle: 'Foto Instantanea',
+            headerTitle: "Foto Instantanea",
             headerStyle: { backgroundColor: colors.background },
             headerTintColor: colors.text,
             headerBackVisible: true,
@@ -139,7 +128,7 @@ export default function PhotosScreen() {
         <Stack.Screen
           options={{
             headerShown: true,
-            headerTitle: 'Foto Instantanea',
+            headerTitle: "Foto Instantanea",
             headerStyle: { backgroundColor: colors.background },
             headerTintColor: colors.text,
             headerBackVisible: true,
@@ -161,7 +150,7 @@ export default function PhotosScreen() {
           <Stack.Screen
             options={{
               headerShown: true,
-              headerTitle: 'Foto Instantanea',
+              headerTitle: "Foto Instantanea",
               headerStyle: { backgroundColor: colors.background },
               headerTintColor: colors.text,
               headerBackVisible: true,
@@ -172,7 +161,10 @@ export default function PhotosScreen() {
             <Text style={styles.permissionText}>
               Necesitamos acceso a tu camara para tomar fotos instantaneas
             </Text>
-            <TouchableOpacity style={styles.permissionButton} onPress={requestPermission}>
+            <TouchableOpacity
+              style={styles.permissionButton}
+              onPress={requestPermission}
+            >
               <Text style={styles.permissionButtonText}>Dar permiso</Text>
             </TouchableOpacity>
             <TouchableOpacity onPress={() => setShowCamera(false)}>
@@ -186,11 +178,7 @@ export default function PhotosScreen() {
     return (
       <View style={styles.cameraContainer}>
         <Stack.Screen options={{ headerShown: false }} />
-        <CameraView
-          ref={cameraRef}
-          style={styles.camera}
-          facing={cameraFacing}
-        >
+        <CameraView ref={cameraRef} style={styles.camera} facing={cameraFacing}>
           {/* Prompt overlay */}
           <View style={styles.promptOverlay}>
             <Text style={styles.promptOverlayText}>{photosData.prompt}</Text>
@@ -227,11 +215,11 @@ export default function PhotosScreen() {
   // Preview captured image
   if (capturedImage) {
     return (
-      <SafeAreaView style={styles.container} edges={['bottom']}>
+      <SafeAreaView style={styles.container} edges={["bottom"]}>
         <Stack.Screen
           options={{
             headerShown: true,
-            headerTitle: 'Tu foto',
+            headerTitle: "Tu foto",
             headerStyle: { backgroundColor: colors.background },
             headerTintColor: colors.text,
             headerBackVisible: true,
@@ -255,7 +243,10 @@ export default function PhotosScreen() {
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={[styles.uploadButton, isUploading && styles.uploadButtonDisabled]}
+              style={[
+                styles.uploadButton,
+                isUploading && styles.uploadButtonDisabled,
+              ]}
               onPress={handleUpload}
               disabled={isUploading}
             >
@@ -276,11 +267,11 @@ export default function PhotosScreen() {
 
   // Main photos view
   return (
-    <SafeAreaView style={styles.container} edges={['bottom']}>
+    <SafeAreaView style={styles.container} edges={["bottom"]}>
       <Stack.Screen
         options={{
           headerShown: true,
-          headerTitle: 'Foto Instantanea',
+          headerTitle: "Foto Instantanea",
           headerStyle: { backgroundColor: colors.background },
           headerTintColor: colors.text,
           headerBackVisible: true,
@@ -323,9 +314,15 @@ export default function PhotosScreen() {
               />
             ) : photosData.otherPhoto ? (
               <View style={styles.photoPlaceholder}>
-                <Ionicons name="lock-closed" size={48} color={colors.textMuted} />
+                <Ionicons
+                  name="lock-closed"
+                  size={48}
+                  color={colors.textMuted}
+                />
                 <Text style={styles.photoPlaceholderText}>
-                  {photosData.userPhoto ? 'Esperando...' : 'Sube tu foto para ver'}
+                  {photosData.userPhoto
+                    ? "Esperando..."
+                    : "Sube tu foto para ver"}
                 </Text>
               </View>
             ) : (
@@ -347,20 +344,16 @@ export default function PhotosScreen() {
               <Ionicons name="camera" size={24} color={colors.text} />
               <Text style={styles.actionButtonText}>Tomar foto ahora</Text>
             </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.galleryButton}
-              onPress={handlePickImage}
-            >
-              <Ionicons name="images" size={20} color={colors.primary} />
-              <Text style={styles.galleryButtonText}>Subir de galeria</Text>
-            </TouchableOpacity>
           </View>
         )}
 
         {photosData.bothCompleted && (
           <View style={styles.completedBanner}>
-            <Ionicons name="checkmark-circle" size={24} color={colors.success} />
+            <Ionicons
+              name="checkmark-circle"
+              size={24}
+              color={colors.success}
+            />
             <Text style={styles.completedText}>Ambos subieron su foto!</Text>
           </View>
         )}
@@ -376,13 +369,13 @@ const styles = StyleSheet.create({
   },
   loadingContainer: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
   },
   errorContainer: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     gap: spacing.md,
   },
   errorText: {
@@ -391,15 +384,15 @@ const styles = StyleSheet.create({
   },
   permissionContainer: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     padding: spacing.xl,
     gap: spacing.lg,
   },
   permissionText: {
     color: colors.textSecondary,
     fontSize: fontSize.md,
-    textAlign: 'center',
+    textAlign: "center",
   },
   permissionButton: {
     backgroundColor: colors.primary,
@@ -421,10 +414,10 @@ const styles = StyleSheet.create({
   },
   camera: {
     flex: 1,
-    justifyContent: 'space-between',
+    justifyContent: "space-between",
   },
   promptOverlay: {
-    backgroundColor: 'rgba(0,0,0,0.7)',
+    backgroundColor: "rgba(0,0,0,0.7)",
     padding: spacing.lg,
     margin: spacing.md,
     borderRadius: borderRadius.lg,
@@ -434,12 +427,12 @@ const styles = StyleSheet.create({
     color: colors.text,
     fontSize: fontSize.lg,
     fontWeight: fontWeight.semibold,
-    textAlign: 'center',
+    textAlign: "center",
   },
   cameraControls: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-around",
+    alignItems: "center",
     padding: spacing.xl,
     paddingBottom: spacing.xxl,
   },
@@ -447,25 +440,25 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: "rgba(0,0,0,0.5)",
+    justifyContent: "center",
+    alignItems: "center",
   },
   captureButton: {
     width: 72,
     height: 72,
     borderRadius: 36,
     backgroundColor: colors.text,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     borderWidth: 4,
-    borderColor: 'rgba(255,255,255,0.5)',
+    borderColor: "rgba(255,255,255,0.5)",
   },
   captureButtonInner: {
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: '#E91E63',
+    backgroundColor: "#E91E63",
   },
   previewContainer: {
     flex: 1,
@@ -491,14 +484,14 @@ const styles = StyleSheet.create({
     fontSize: fontSize.md,
   },
   previewActions: {
-    flexDirection: 'row',
+    flexDirection: "row",
     gap: spacing.md,
   },
   retakeButton: {
     flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
     backgroundColor: colors.backgroundLight,
     paddingVertical: spacing.md,
     borderRadius: borderRadius.md,
@@ -511,10 +504,10 @@ const styles = StyleSheet.create({
   },
   uploadButton: {
     flex: 2,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#E91E63',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#E91E63",
     paddingVertical: spacing.md,
     borderRadius: borderRadius.md,
     gap: spacing.sm,
@@ -536,7 +529,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.backgroundCard,
     padding: spacing.lg,
     borderRadius: borderRadius.xl,
-    alignItems: 'center',
+    alignItems: "center",
     gap: spacing.sm,
     ...shadows.md,
   },
@@ -548,10 +541,10 @@ const styles = StyleSheet.create({
     color: colors.text,
     fontSize: fontSize.lg,
     fontWeight: fontWeight.semibold,
-    textAlign: 'center',
+    textAlign: "center",
   },
   photosGrid: {
-    flexDirection: 'row',
+    flexDirection: "row",
     gap: spacing.md,
     flex: 1,
   },
@@ -563,7 +556,7 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     fontSize: fontSize.sm,
     fontWeight: fontWeight.medium,
-    textAlign: 'center',
+    textAlign: "center",
   },
   photoImage: {
     flex: 1,
@@ -574,27 +567,27 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.backgroundCard,
     borderRadius: borderRadius.lg,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     gap: spacing.sm,
     borderWidth: 2,
     borderColor: colors.border,
-    borderStyle: 'dashed',
+    borderStyle: "dashed",
   },
   photoPlaceholderText: {
     color: colors.textMuted,
     fontSize: fontSize.sm,
-    textAlign: 'center',
+    textAlign: "center",
     paddingHorizontal: spacing.md,
   },
   actions: {
     gap: spacing.md,
   },
   cameraActionButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#E91E63',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#E91E63",
     paddingVertical: spacing.lg,
     borderRadius: borderRadius.lg,
     gap: spacing.sm,
@@ -604,27 +597,11 @@ const styles = StyleSheet.create({
     fontSize: fontSize.lg,
     fontWeight: fontWeight.semibold,
   },
-  galleryButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.backgroundCard,
-    paddingVertical: spacing.md,
-    borderRadius: borderRadius.md,
-    gap: spacing.sm,
-    borderWidth: 1,
-    borderColor: colors.primary,
-  },
-  galleryButtonText: {
-    color: colors.primary,
-    fontSize: fontSize.md,
-    fontWeight: fontWeight.medium,
-  },
   completedBanner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.success + '20',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: colors.success + "20",
     paddingVertical: spacing.md,
     borderRadius: borderRadius.md,
     gap: spacing.sm,

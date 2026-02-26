@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from "react";
 import {
   View,
   Text,
@@ -9,69 +9,94 @@ import {
   TextInput,
   KeyboardAvoidingView,
   Platform,
-} from 'react-native';
-import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
-import { useNucleusStore } from '../../../../src/store/nucleus.store';
-import { colors, fontSize, fontWeight, spacing, borderRadius, shadows } from '../../../../src/utils/theme';
+  Animated,
+} from "react-native";
+import { useLocalSearchParams, useRouter, Stack } from "expo-router";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { Ionicons } from "@expo/vector-icons";
+import { useNucleusStore } from "../../../../src/store/nucleus.store";
+import {
+  getSocket,
+  joinConnection,
+  leaveConnection,
+} from "../../../../src/services/socket";
+import {
+  colors,
+  fontSize,
+  fontWeight,
+  spacing,
+  borderRadius,
+  shadows,
+} from "../../../../src/utils/theme";
 
 const getCategoryIcon = (category: string): string => {
   const icons: Record<string, string> = {
-    musica: 'musical-notes',
-    fotografia: 'camera',
-    viajes: 'airplane',
-    deportes: 'fitness',
-    cocina: 'restaurant',
-    cine: 'film',
-    libros: 'book',
-    arte: 'color-palette',
-    naturaleza: 'leaf',
-    tecnologia: 'laptop',
-    general: 'sparkles',
+    musica: "musical-notes",
+    fotografia: "camera",
+    viajes: "airplane",
+    deportes: "fitness",
+    cocina: "restaurant",
+    cine: "film",
+    libros: "book",
+    arte: "color-palette",
+    naturaleza: "leaf",
+    tecnologia: "laptop",
+    general: "sparkles",
   };
-  return icons[category] || 'help-circle';
+  return icons[category] || "help-circle";
 };
 
 const getCategoryColor = (category: string): string => {
   const categoryColors: Record<string, string> = {
-    musica: '#9C27B0',
-    fotografia: '#E91E63',
-    viajes: '#2196F3',
-    deportes: '#4CAF50',
-    cocina: '#FF9800',
-    cine: '#F44336',
-    libros: '#795548',
-    arte: '#FF5722',
-    naturaleza: '#8BC34A',
-    tecnologia: '#00BCD4',
-    general: '#607D8B',
+    musica: "#9C27B0",
+    fotografia: "#E91E63",
+    viajes: "#2196F3",
+    deportes: "#4CAF50",
+    cocina: "#FF9800",
+    cine: "#F44336",
+    libros: "#795548",
+    arte: "#FF5722",
+    naturaleza: "#8BC34A",
+    tecnologia: "#00BCD4",
+    general: "#607D8B",
   };
   return categoryColors[category] || colors.primary;
 };
 
 export default function CategoryQuestionsScreen() {
-  const { id, category } = useLocalSearchParams<{ id: string; category: string }>();
+  const { id, category } = useLocalSearchParams<{
+    id: string;
+    category: string;
+  }>();
   const router = useRouter();
-  const { currentCategory, isLoading, loadCategoryQuestions, submitAnswer } = useNucleusStore();
+  const { currentCategory, isLoading, loadCategoryQuestions, submitAnswer } =
+    useNucleusStore();
 
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
-  const [textResponse, setTextResponse] = useState('');
-  const [thisOrThatAnswers, setThisOrThatAnswers] = useState<Record<number, string>>({});
+  const [textResponse, setTextResponse] = useState("");
+  const [thisOrThatAnswers, setThisOrThatAnswers] = useState<
+    Record<number, string>
+  >({});
   const [selectedChoice, setSelectedChoice] = useState<string | null>(null);
   const [rankingOrder, setRankingOrder] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const dotsFlashAnim = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
-    if (id && category) {
-      loadCategoryQuestions(id, category);
-    }
+    if (!id || !category) return;
+    loadCategoryQuestions(id, category);
+    joinConnection(id);
+    return () => {
+      leaveConnection(id);
+    };
   }, [id, category]);
 
   useEffect(() => {
     // Find first unanswered question
     if (currentCategory?.questions) {
-      const firstUnanswered = currentCategory.questions.findIndex(q => !q.userResponse);
+      const firstUnanswered = currentCategory.questions.findIndex(
+        (q) => !q.userResponse,
+      );
       if (firstUnanswered !== -1) {
         setCurrentQuestionIndex(firstUnanswered);
       }
@@ -80,11 +105,57 @@ export default function CategoryQuestionsScreen() {
 
   useEffect(() => {
     // Reset state when question changes
-    setTextResponse('');
+    setTextResponse("");
     setThisOrThatAnswers({});
     setSelectedChoice(null);
     setRankingOrder([]);
   }, [currentQuestionIndex]);
+
+  // Socket listener: reload when the other user answers a question
+  useEffect(() => {
+    if (!id || !category) return;
+    const socket = getSocket();
+    if (!socket) return;
+
+    const handleNucleusUpdated = (data: { connectionId: string }) => {
+      if (data.connectionId === id) {
+        loadCategoryQuestions(id, category);
+        // Flash the progress dots to signal the other user answered
+        Animated.sequence([
+          Animated.timing(dotsFlashAnim, {
+            toValue: 1.15,
+            duration: 180,
+            useNativeDriver: true,
+          }),
+          Animated.timing(dotsFlashAnim, {
+            toValue: 1,
+            duration: 300,
+            useNativeDriver: true,
+          }),
+        ]).start();
+      }
+    };
+
+    socket.on("nucleus:updated", handleNucleusUpdated);
+    return () => {
+      socket.off("nucleus:updated", handleNucleusUpdated);
+    };
+  }, [id, category]);
+
+  const formatResponse = (response: any, type: string): string => {
+    if (!response) return "-";
+    if (typeof response === "string") return response;
+    if (type === "THIS_OR_THAT" && typeof response === "object") {
+      return Object.entries(response)
+        .map(([, v]) => v)
+        .join(", ");
+    }
+    if (type === "RANKING" && Array.isArray(response)) {
+      return response.map((item, i) => `${i + 1}. ${item}`).join("  ·  ");
+    }
+    if (Array.isArray(response)) return response.join(", ");
+    return JSON.stringify(response);
+  };
 
   if (isLoading && !currentCategory) {
     return (
@@ -92,7 +163,9 @@ export default function CategoryQuestionsScreen() {
         <Stack.Screen
           options={{
             headerShown: true,
-            headerTitle: category ? category.charAt(0).toUpperCase() + category.slice(1) : 'Preguntas',
+            headerTitle: category
+              ? category.charAt(0).toUpperCase() + category.slice(1)
+              : "Preguntas",
             headerStyle: { backgroundColor: colors.background },
             headerTintColor: colors.text,
             headerBackVisible: true,
@@ -111,14 +184,20 @@ export default function CategoryQuestionsScreen() {
         <Stack.Screen
           options={{
             headerShown: true,
-            headerTitle: category ? category.charAt(0).toUpperCase() + category.slice(1) : 'Preguntas',
+            headerTitle: category
+              ? category.charAt(0).toUpperCase() + category.slice(1)
+              : "Preguntas",
             headerStyle: { backgroundColor: colors.background },
             headerTintColor: colors.text,
             headerBackVisible: true,
           }}
         />
         <View style={styles.emptyContainer}>
-          <Ionicons name="help-circle-outline" size={64} color={colors.textMuted} />
+          <Ionicons
+            name="help-circle-outline"
+            size={64}
+            color={colors.textMuted}
+          />
           <Text style={styles.emptyText}>No hay preguntas disponibles</Text>
         </View>
       </SafeAreaView>
@@ -126,9 +205,15 @@ export default function CategoryQuestionsScreen() {
   }
 
   const currentQuestion = currentCategory.questions[currentQuestionIndex];
-  const categoryColor = getCategoryColor(category || '');
+  const categoryColor = getCategoryColor(category || "");
   const totalQuestions = currentCategory.questions.length;
-  const answeredCount = currentCategory.questions.filter(q => q.userResponse).length;
+  // Progress only counts when BOTH have answered
+  const answeredCount = currentCategory.questions.filter(
+    (q) => q.bothAnswered,
+  ).length;
+  const iAnsweredCount = currentCategory.questions.filter(
+    (q) => q.userResponse,
+  ).length;
 
   const handleSubmit = async () => {
     if (!currentQuestion || isSubmitting) return;
@@ -136,19 +221,19 @@ export default function CategoryQuestionsScreen() {
     let response: any;
 
     switch (currentQuestion.type) {
-      case 'TEXT':
+      case "TEXT":
         if (!textResponse.trim()) return;
         response = textResponse.trim();
         break;
-      case 'THIS_OR_THAT':
+      case "THIS_OR_THAT":
         if (Object.keys(thisOrThatAnswers).length === 0) return;
         response = thisOrThatAnswers;
         break;
-      case 'CHOICE':
+      case "CHOICE":
         if (!selectedChoice) return;
         response = selectedChoice;
         break;
-      case 'RANKING':
+      case "RANKING":
         if (rankingOrder.length === 0) return;
         response = rankingOrder;
         break;
@@ -164,7 +249,7 @@ export default function CategoryQuestionsScreen() {
       // Move to next question or show completion
       if (currentQuestionIndex < totalQuestions - 1) {
         const nextUnanswered = currentCategory.questions.findIndex(
-          (q, i) => i > currentQuestionIndex && !q.userResponse
+          (q, i) => i > currentQuestionIndex && !q.userResponse,
         );
         if (nextUnanswered !== -1) {
           setCurrentQuestionIndex(nextUnanswered);
@@ -180,7 +265,7 @@ export default function CategoryQuestionsScreen() {
 
   const renderQuestionInput = () => {
     switch (currentQuestion.type) {
-      case 'TEXT':
+      case "TEXT":
         return (
           <View style={styles.textInputContainer}>
             <TextInput
@@ -197,8 +282,11 @@ export default function CategoryQuestionsScreen() {
           </View>
         );
 
-      case 'THIS_OR_THAT':
-        const options = currentQuestion.options as Array<{ a: string; b: string }>;
+      case "THIS_OR_THAT":
+        const options = currentQuestion.options as Array<{
+          a: string;
+          b: string;
+        }>;
         return (
           <View style={styles.thisOrThatContainer}>
             {options.map((option, index) => (
@@ -206,14 +294,23 @@ export default function CategoryQuestionsScreen() {
                 <TouchableOpacity
                   style={[
                     styles.thisOrThatOption,
-                    thisOrThatAnswers[index] === 'a' && { backgroundColor: categoryColor + '30', borderColor: categoryColor },
+                    thisOrThatAnswers[index] === "a" && {
+                      backgroundColor: categoryColor + "30",
+                      borderColor: categoryColor,
+                    },
                   ]}
-                  onPress={() => setThisOrThatAnswers({ ...thisOrThatAnswers, [index]: 'a' })}
+                  onPress={() =>
+                    setThisOrThatAnswers({ ...thisOrThatAnswers, [index]: "a" })
+                  }
                 >
-                  <Text style={[
-                    styles.thisOrThatText,
-                    thisOrThatAnswers[index] === 'a' && { color: categoryColor },
-                  ]}>
+                  <Text
+                    style={[
+                      styles.thisOrThatText,
+                      thisOrThatAnswers[index] === "a" && {
+                        color: categoryColor,
+                      },
+                    ]}
+                  >
                     {option.a}
                   </Text>
                 </TouchableOpacity>
@@ -221,14 +318,23 @@ export default function CategoryQuestionsScreen() {
                 <TouchableOpacity
                   style={[
                     styles.thisOrThatOption,
-                    thisOrThatAnswers[index] === 'b' && { backgroundColor: categoryColor + '30', borderColor: categoryColor },
+                    thisOrThatAnswers[index] === "b" && {
+                      backgroundColor: categoryColor + "30",
+                      borderColor: categoryColor,
+                    },
                   ]}
-                  onPress={() => setThisOrThatAnswers({ ...thisOrThatAnswers, [index]: 'b' })}
+                  onPress={() =>
+                    setThisOrThatAnswers({ ...thisOrThatAnswers, [index]: "b" })
+                  }
                 >
-                  <Text style={[
-                    styles.thisOrThatText,
-                    thisOrThatAnswers[index] === 'b' && { color: categoryColor },
-                  ]}>
+                  <Text
+                    style={[
+                      styles.thisOrThatText,
+                      thisOrThatAnswers[index] === "b" && {
+                        color: categoryColor,
+                      },
+                    ]}
+                  >
                     {option.b}
                   </Text>
                 </TouchableOpacity>
@@ -237,7 +343,7 @@ export default function CategoryQuestionsScreen() {
           </View>
         );
 
-      case 'CHOICE':
+      case "CHOICE":
         const choices = currentQuestion.options as string[];
         return (
           <View style={styles.choicesContainer}>
@@ -246,22 +352,32 @@ export default function CategoryQuestionsScreen() {
                 key={choice}
                 style={[
                   styles.choiceOption,
-                  selectedChoice === choice && { backgroundColor: categoryColor + '30', borderColor: categoryColor },
+                  selectedChoice === choice && {
+                    backgroundColor: categoryColor + "30",
+                    borderColor: categoryColor,
+                  },
                 ]}
                 onPress={() => setSelectedChoice(choice)}
               >
-                <View style={[
-                  styles.choiceRadio,
-                  selectedChoice === choice && { borderColor: categoryColor, backgroundColor: categoryColor },
-                ]}>
+                <View
+                  style={[
+                    styles.choiceRadio,
+                    selectedChoice === choice && {
+                      borderColor: categoryColor,
+                      backgroundColor: categoryColor,
+                    },
+                  ]}
+                >
                   {selectedChoice === choice && (
                     <View style={styles.choiceRadioInner} />
                   )}
                 </View>
-                <Text style={[
-                  styles.choiceText,
-                  selectedChoice === choice && { color: categoryColor },
-                ]}>
+                <Text
+                  style={[
+                    styles.choiceText,
+                    selectedChoice === choice && { color: categoryColor },
+                  ]}
+                >
                   {choice}
                 </Text>
               </TouchableOpacity>
@@ -269,9 +385,11 @@ export default function CategoryQuestionsScreen() {
           </View>
         );
 
-      case 'RANKING':
+      case "RANKING":
         const rankingOptions = currentQuestion.options as string[];
-        const availableOptions = rankingOptions.filter(o => !rankingOrder.includes(o));
+        const availableOptions = rankingOptions.filter(
+          (o) => !rankingOrder.includes(o),
+        );
 
         return (
           <View style={styles.rankingContainer}>
@@ -282,11 +400,24 @@ export default function CategoryQuestionsScreen() {
                   <TouchableOpacity
                     key={item}
                     style={styles.rankingItem}
-                    onPress={() => setRankingOrder(rankingOrder.filter(i => i !== item))}
+                    onPress={() =>
+                      setRankingOrder(rankingOrder.filter((i) => i !== item))
+                    }
                   >
-                    <Text style={[styles.rankingNumber, { backgroundColor: categoryColor }]}>{index + 1}</Text>
+                    <Text
+                      style={[
+                        styles.rankingNumber,
+                        { backgroundColor: categoryColor },
+                      ]}
+                    >
+                      {index + 1}
+                    </Text>
                     <Text style={styles.rankingItemText}>{item}</Text>
-                    <Ionicons name="close-circle" size={20} color={colors.error} />
+                    <Ionicons
+                      name="close-circle"
+                      size={20}
+                      color={colors.error}
+                    />
                   </TouchableOpacity>
                 ))}
               </View>
@@ -295,7 +426,9 @@ export default function CategoryQuestionsScreen() {
             {availableOptions.length > 0 && (
               <View style={styles.rankingAvailable}>
                 <Text style={styles.rankingLabel}>
-                  {rankingOrder.length === 0 ? 'Toca para ordenar:' : 'Restantes:'}
+                  {rankingOrder.length === 0
+                    ? "Toca para ordenar:"
+                    : "Restantes:"}
                 </Text>
                 {availableOptions.map((item) => (
                   <TouchableOpacity
@@ -304,7 +437,11 @@ export default function CategoryQuestionsScreen() {
                     onPress={() => setRankingOrder([...rankingOrder, item])}
                   >
                     <Text style={styles.rankingAvailableText}>{item}</Text>
-                    <Ionicons name="add-circle" size={20} color={categoryColor} />
+                    <Ionicons
+                      name="add-circle"
+                      size={20}
+                      color={categoryColor}
+                    />
                   </TouchableOpacity>
                 ))}
               </View>
@@ -319,14 +456,17 @@ export default function CategoryQuestionsScreen() {
 
   const isSubmitDisabled = () => {
     switch (currentQuestion.type) {
-      case 'TEXT':
+      case "TEXT":
         return !textResponse.trim();
-      case 'THIS_OR_THAT':
-        const options = currentQuestion.options as Array<{ a: string; b: string }>;
+      case "THIS_OR_THAT":
+        const options = currentQuestion.options as Array<{
+          a: string;
+          b: string;
+        }>;
         return Object.keys(thisOrThatAnswers).length < options.length;
-      case 'CHOICE':
+      case "CHOICE":
         return !selectedChoice;
-      case 'RANKING':
+      case "RANKING":
         const rankingOptions = currentQuestion.options as string[];
         return rankingOrder.length < rankingOptions.length;
       default:
@@ -335,11 +475,13 @@ export default function CategoryQuestionsScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.container} edges={['bottom']}>
+    <SafeAreaView style={styles.container} edges={["bottom"]}>
       <Stack.Screen
         options={{
           headerShown: true,
-          headerTitle: category ? category.charAt(0).toUpperCase() + category.slice(1) : 'Preguntas',
+          headerTitle: category
+            ? category.charAt(0).toUpperCase() + category.slice(1)
+            : "Preguntas",
           headerStyle: { backgroundColor: colors.background },
           headerTintColor: colors.text,
           headerBackVisible: true,
@@ -348,37 +490,70 @@ export default function CategoryQuestionsScreen() {
 
       <KeyboardAvoidingView
         style={styles.flex}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
       >
         {/* Progress Header */}
         <View style={styles.progressHeader}>
-          <View style={[styles.categoryBadge, { backgroundColor: categoryColor + '20' }]}>
-            <Ionicons name={getCategoryIcon(category || '') as any} size={16} color={categoryColor} />
+          <View
+            style={[
+              styles.categoryBadge,
+              { backgroundColor: categoryColor + "20" },
+            ]}
+          >
+            <Ionicons
+              name={getCategoryIcon(category || "") as any}
+              size={16}
+              color={categoryColor}
+            />
             <Text style={[styles.categoryBadgeText, { color: categoryColor }]}>
               {category}
             </Text>
           </View>
-          <View style={styles.progressDots}>
+          <Animated.View
+            style={[
+              styles.progressDots,
+              { transform: [{ scale: dotsFlashAnim }] },
+            ]}
+          >
             {currentCategory.questions.map((q, i) => (
               <View
                 key={i}
                 style={[
                   styles.progressDot,
-                  q.userResponse && styles.progressDotCompleted,
+                  // I answered but other hasn't yet → lighter indicator
+                  q.userResponse &&
+                    !q.bothAnswered && {
+                      backgroundColor: categoryColor + "55",
+                      borderColor: categoryColor,
+                    },
+                  // Both answered → full completion
+                  q.bothAnswered && styles.progressDotCompleted,
+                  q.bothAnswered && { backgroundColor: categoryColor },
                   i === currentQuestionIndex && styles.progressDotActive,
-                  q.userResponse && { backgroundColor: categoryColor },
                   i === currentQuestionIndex && { borderColor: categoryColor },
                 ]}
               />
             ))}
+          </Animated.View>
+          <View style={styles.progressCountGroup}>
+            <Text style={styles.progressText}>
+              {answeredCount}/{totalQuestions}
+            </Text>
+            {iAnsweredCount > answeredCount && (
+              <Text style={styles.progressSubText}>yo: {iAnsweredCount}</Text>
+            )}
           </View>
-          <Text style={styles.progressText}>{answeredCount}/{totalQuestions}</Text>
         </View>
 
-        <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
+        <ScrollView
+          style={styles.scrollView}
+          contentContainerStyle={styles.scrollContent}
+        >
           {/* Question */}
           <View style={styles.questionContainer}>
-            <Text style={styles.questionNumber}>Pregunta {currentQuestionIndex + 1}</Text>
+            <Text style={styles.questionNumber}>
+              Pregunta {currentQuestionIndex + 1}
+            </Text>
             <Text style={styles.questionText}>{currentQuestion.text}</Text>
           </View>
 
@@ -387,7 +562,7 @@ export default function CategoryQuestionsScreen() {
             <View style={styles.otherResponseContainer}>
               <Text style={styles.otherResponseLabel}>Su respuesta:</Text>
               <Text style={styles.otherResponseText}>
-                {typeof currentQuestion.otherResponse === 'string'
+                {typeof currentQuestion.otherResponse === "string"
                   ? currentQuestion.otherResponse
                   : JSON.stringify(currentQuestion.otherResponse)}
               </Text>
@@ -399,13 +574,93 @@ export default function CategoryQuestionsScreen() {
             renderQuestionInput()
           ) : (
             <View style={styles.answeredContainer}>
-              <Ionicons name="checkmark-circle" size={48} color={colors.success} />
-              <Text style={styles.answeredText}>Ya respondiste esta pregunta</Text>
+              <Ionicons
+                name="checkmark-circle"
+                size={48}
+                color={colors.success}
+              />
+              <Text style={styles.answeredText}>
+                Ya respondiste esta pregunta
+              </Text>
               <Text style={styles.answeredResponse}>
-                {typeof currentQuestion.userResponse === 'string'
+                {typeof currentQuestion.userResponse === "string"
                   ? currentQuestion.userResponse
                   : JSON.stringify(currentQuestion.userResponse)}
               </Text>
+            </View>
+          )}
+
+          {/* Answered Q&A history */}
+          {currentCategory.questions.some((q) => q.userResponse) && (
+            <View style={styles.historySection}>
+              <View style={styles.historySectionHeader}>
+                <Ionicons
+                  name="chatbubbles-outline"
+                  size={18}
+                  color={colors.textSecondary}
+                />
+                <Text style={styles.historySectionTitle}>
+                  Respuestas compartidas
+                </Text>
+              </View>
+              {currentCategory.questions
+                .filter((q) => q.userResponse)
+                .map((q, i) => (
+                  <View
+                    key={q.id}
+                    style={[
+                      styles.historyCard,
+                      { borderLeftColor: categoryColor },
+                    ]}
+                  >
+                    <Text style={styles.historyQuestion}>{q.text}</Text>
+                    <View style={styles.historyAnswerRow}>
+                      <View style={styles.historyAnswerBubble}>
+                        <Text style={styles.historyAnswerLabel}>Tú</Text>
+                        <Text style={styles.historyAnswerText}>
+                          {formatResponse(q.userResponse, q.type)}
+                        </Text>
+                      </View>
+                      {q.otherResponse !== null ? (
+                        <View
+                          style={[
+                            styles.historyAnswerBubble,
+                            styles.historyAnswerBubbleOther,
+                          ]}
+                        >
+                          <Text
+                            style={[
+                              styles.historyAnswerLabel,
+                              { color: categoryColor },
+                            ]}
+                          >
+                            {q.bothAnswered ? "Él/Ella" : "Ellos"}
+                          </Text>
+                          <Text style={styles.historyAnswerText}>
+                            {formatResponse(q.otherResponse, q.type)}
+                          </Text>
+                        </View>
+                      ) : (
+                        <View
+                          style={[
+                            styles.historyAnswerBubble,
+                            styles.historyAnswerBubblePending,
+                          ]}
+                        >
+                          <Text style={styles.historyAnswerLabel}>Ellos</Text>
+                          <Text
+                            style={[
+                              styles.historyAnswerText,
+                              { color: colors.textMuted, fontStyle: "italic" },
+                            ]}
+                          >
+                            Aún no responde...
+                          </Text>
+                        </View>
+                      )}
+                    </View>
+                  </View>
+                ))}
             </View>
           )}
         </ScrollView>
@@ -446,10 +701,16 @@ export default function CategoryQuestionsScreen() {
             currentQuestionIndex < totalQuestions - 1 && (
               <TouchableOpacity
                 style={[styles.nextButton, { backgroundColor: categoryColor }]}
-                onPress={() => setCurrentQuestionIndex(currentQuestionIndex + 1)}
+                onPress={() =>
+                  setCurrentQuestionIndex(currentQuestionIndex + 1)
+                }
               >
                 <Text style={styles.submitButtonText}>Siguiente</Text>
-                <Ionicons name="chevron-forward" size={18} color={colors.text} />
+                <Ionicons
+                  name="chevron-forward"
+                  size={18}
+                  color={colors.text}
+                />
               </TouchableOpacity>
             )
           )}
@@ -469,13 +730,13 @@ const styles = StyleSheet.create({
   },
   loadingContainer: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
   },
   emptyContainer: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     gap: spacing.md,
   },
   emptyText: {
@@ -483,15 +744,15 @@ const styles = StyleSheet.create({
     fontSize: fontSize.lg,
   },
   progressHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     padding: spacing.md,
     backgroundColor: colors.backgroundCard,
     gap: spacing.md,
   },
   categoryBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     paddingHorizontal: spacing.sm,
     paddingVertical: spacing.xs,
     borderRadius: borderRadius.full,
@@ -500,12 +761,12 @@ const styles = StyleSheet.create({
   categoryBadgeText: {
     fontSize: fontSize.sm,
     fontWeight: fontWeight.medium,
-    textTransform: 'capitalize',
+    textTransform: "capitalize",
   },
   progressDots: {
     flex: 1,
-    flexDirection: 'row',
-    justifyContent: 'center',
+    flexDirection: "row",
+    justifyContent: "center",
     gap: spacing.xs,
   },
   progressDot: {
@@ -527,6 +788,14 @@ const styles = StyleSheet.create({
   progressText: {
     color: colors.textSecondary,
     fontSize: fontSize.sm,
+  },
+  progressCountGroup: {
+    alignItems: "flex-end",
+    gap: 1,
+  },
+  progressSubText: {
+    color: colors.textMuted,
+    fontSize: fontSize.xs,
   },
   scrollView: {
     flex: 1,
@@ -559,19 +828,19 @@ const styles = StyleSheet.create({
     color: colors.text,
     fontSize: fontSize.md,
     minHeight: 120,
-    textAlignVertical: 'top',
+    textAlignVertical: "top",
   },
   charCount: {
     color: colors.textMuted,
     fontSize: fontSize.sm,
-    textAlign: 'right',
+    textAlign: "right",
   },
   thisOrThatContainer: {
     gap: spacing.md,
   },
   thisOrThatRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: spacing.sm,
   },
   thisOrThatOption: {
@@ -579,15 +848,15 @@ const styles = StyleSheet.create({
     backgroundColor: colors.backgroundLight,
     borderRadius: borderRadius.md,
     padding: spacing.md,
-    alignItems: 'center',
+    alignItems: "center",
     borderWidth: 2,
-    borderColor: 'transparent',
+    borderColor: "transparent",
   },
   thisOrThatText: {
     color: colors.text,
     fontSize: fontSize.md,
     fontWeight: fontWeight.medium,
-    textAlign: 'center',
+    textAlign: "center",
   },
   vsText: {
     color: colors.textMuted,
@@ -598,14 +867,14 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
   },
   choiceOption: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     backgroundColor: colors.backgroundLight,
     borderRadius: borderRadius.md,
     padding: spacing.md,
     gap: spacing.md,
     borderWidth: 2,
-    borderColor: 'transparent',
+    borderColor: "transparent",
   },
   choiceRadio: {
     width: 24,
@@ -613,8 +882,8 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     borderWidth: 2,
     borderColor: colors.border,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
   },
   choiceRadioInner: {
     width: 12,
@@ -639,8 +908,8 @@ const styles = StyleSheet.create({
     fontWeight: fontWeight.medium,
   },
   rankingItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     backgroundColor: colors.backgroundLight,
     borderRadius: borderRadius.md,
     padding: spacing.sm,
@@ -653,9 +922,9 @@ const styles = StyleSheet.create({
     width: 24,
     height: 24,
     borderRadius: 12,
-    textAlign: 'center',
+    textAlign: "center",
     lineHeight: 24,
-    overflow: 'hidden',
+    overflow: "hidden",
   },
   rankingItemText: {
     color: colors.text,
@@ -666,15 +935,15 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
   },
   rankingAvailableItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     backgroundColor: colors.backgroundCard,
     borderRadius: borderRadius.md,
     padding: spacing.sm,
     gap: spacing.sm,
     borderWidth: 1,
     borderColor: colors.border,
-    borderStyle: 'dashed',
+    borderStyle: "dashed",
   },
   rankingAvailableText: {
     color: colors.textSecondary,
@@ -698,7 +967,7 @@ const styles = StyleSheet.create({
     fontSize: fontSize.md,
   },
   answeredContainer: {
-    alignItems: 'center',
+    alignItems: "center",
     padding: spacing.xl,
     gap: spacing.md,
   },
@@ -710,12 +979,12 @@ const styles = StyleSheet.create({
   answeredResponse: {
     color: colors.textSecondary,
     fontSize: fontSize.md,
-    textAlign: 'center',
-    fontStyle: 'italic',
+    textAlign: "center",
+    fontStyle: "italic",
   },
   bottomActions: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     padding: spacing.md,
     backgroundColor: colors.backgroundCard,
     borderTopWidth: 1,
@@ -731,8 +1000,8 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   submitButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     paddingHorizontal: spacing.xl,
     paddingVertical: spacing.md,
     borderRadius: borderRadius.md,
@@ -747,11 +1016,75 @@ const styles = StyleSheet.create({
     fontWeight: fontWeight.semibold,
   },
   nextButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     paddingHorizontal: spacing.xl,
     paddingVertical: spacing.md,
     borderRadius: borderRadius.md,
     gap: spacing.sm,
+  },
+  historySection: {
+    marginTop: spacing.xl,
+    gap: spacing.md,
+  },
+  historySectionHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.sm,
+    paddingBottom: spacing.sm,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
+  historySectionTitle: {
+    color: colors.textSecondary,
+    fontSize: fontSize.sm,
+    fontWeight: fontWeight.semibold,
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+  },
+  historyCard: {
+    backgroundColor: colors.backgroundCard,
+    borderRadius: borderRadius.md,
+    padding: spacing.md,
+    borderLeftWidth: 3,
+    gap: spacing.sm,
+  },
+  historyQuestion: {
+    color: colors.text,
+    fontSize: fontSize.sm,
+    fontWeight: fontWeight.medium,
+  },
+  historyAnswerRow: {
+    flexDirection: "row",
+    gap: spacing.sm,
+  },
+  historyAnswerBubble: {
+    flex: 1,
+    backgroundColor: colors.backgroundLight,
+    borderRadius: borderRadius.sm,
+    padding: spacing.sm,
+    gap: spacing.xs,
+  },
+  historyAnswerBubbleOther: {
+    backgroundColor: colors.background,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  historyAnswerBubblePending: {
+    backgroundColor: colors.background,
+    borderWidth: 1,
+    borderColor: colors.border,
+    opacity: 0.6,
+  },
+  historyAnswerLabel: {
+    color: colors.textMuted,
+    fontSize: fontSize.xs,
+    fontWeight: fontWeight.semibold,
+    textTransform: "uppercase",
+  },
+  historyAnswerText: {
+    color: colors.text,
+    fontSize: fontSize.sm,
+    lineHeight: 18,
   },
 });

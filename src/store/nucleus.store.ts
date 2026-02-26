@@ -1,5 +1,5 @@
-import { create } from 'zustand';
-import { api } from '../services/api';
+import { create } from "zustand";
+import { api } from "../services/api";
 
 interface CategoryProgress {
   category: string;
@@ -11,7 +11,7 @@ interface CategoryProgress {
 interface Question {
   id: string;
   order: number;
-  type: 'TEXT' | 'CHOICE' | 'MULTIPLE' | 'THIS_OR_THAT' | 'RANKING';
+  type: "TEXT" | "CHOICE" | "MULTIPLE" | "THIS_OR_THAT" | "RANKING";
   text: string;
   options?: any;
   userResponse: any | null;
@@ -22,7 +22,7 @@ interface Question {
 interface MiniGame {
   type: string;
   name: string;
-  status: 'PENDING' | 'IN_PROGRESS' | 'COMPLETED';
+  status: "PENDING" | "IN_PROGRESS" | "COMPLETED";
   gameId?: string;
 }
 
@@ -30,7 +30,7 @@ interface NucleusOverview {
   connection: {
     id: string;
     progress: number;
-    chatLevel: 'NONE' | 'LIMITED' | 'UNLIMITED';
+    chatLevel: "NONE" | "LIMITED" | "UNLIMITED";
     status: string;
   };
   otherUser: {
@@ -65,6 +65,14 @@ interface NucleusOverview {
       progress: number;
       maxProgress: number;
     };
+    places?: {
+      userHasLocation: boolean;
+      enabled: boolean;
+      suggestionsCount: number;
+      hasAgreed: boolean;
+      progress: number;
+      maxProgress: number;
+    };
   };
   sharedInterests: { interest: string; isMain: boolean }[];
 }
@@ -87,10 +95,26 @@ interface NucleusState {
 
   // Actions
   loadOverview: (connectionId: string) => Promise<void>;
-  loadCategoryQuestions: (connectionId: string, category: string) => Promise<void>;
-  submitAnswer: (connectionId: string, questionId: string, response: any) => Promise<any>;
-  uploadPhoto: (connectionId: string, photoUrl: string, prompt: string) => Promise<any>;
-  uploadVoiceNote: (connectionId: string, audioUrl: string, duration: number, prompt: string) => Promise<any>;
+  loadCategoryQuestions: (
+    connectionId: string,
+    category: string,
+  ) => Promise<void>;
+  submitAnswer: (
+    connectionId: string,
+    questionId: string,
+    response: any,
+  ) => Promise<any>;
+  uploadPhoto: (
+    connectionId: string,
+    photoUri: string,
+    prompt: string,
+  ) => Promise<any>;
+  uploadVoiceNote: (
+    connectionId: string,
+    audioUri: string,
+    duration: number,
+    prompt: string,
+  ) => Promise<any>;
   clearNucleus: () => void;
 }
 
@@ -107,7 +131,7 @@ export const useNucleusStore = create<NucleusState>((set, get) => ({
       set({ overview: response.data, isLoading: false });
     } catch (error: any) {
       set({
-        error: error.response?.data?.error || 'Error al cargar el núcleo',
+        error: error.response?.data?.error || "Error al cargar el núcleo",
         isLoading: false,
       });
     }
@@ -116,24 +140,36 @@ export const useNucleusStore = create<NucleusState>((set, get) => ({
   loadCategoryQuestions: async (connectionId: string, category: string) => {
     set({ isLoading: true, error: null });
     try {
-      const response = await api.get(`/nucleus/${connectionId}/questions/${category}`);
+      const response = await api.get(
+        `/nucleus/${connectionId}/questions/${category}`,
+      );
       set({ currentCategory: response.data, isLoading: false });
     } catch (error: any) {
       set({
-        error: error.response?.data?.error || 'Error al cargar preguntas',
+        error: error.response?.data?.error || "Error al cargar preguntas",
         isLoading: false,
       });
     }
   },
 
-  submitAnswer: async (connectionId: string, questionId: string, response: any) => {
+  submitAnswer: async (
+    connectionId: string,
+    questionId: string,
+    response: any,
+  ) => {
     try {
-      const result = await api.post(`/nucleus/${connectionId}/questions/${questionId}/answer`, { response });
+      const result = await api.post(
+        `/nucleus/${connectionId}/questions/${questionId}/answer`,
+        { response },
+      );
 
       // Reload current category
       const { currentCategory } = get();
       if (currentCategory) {
-        await get().loadCategoryQuestions(connectionId, currentCategory.category);
+        await get().loadCategoryQuestions(
+          connectionId,
+          currentCategory.category,
+        );
       }
 
       // Reload overview for updated progress
@@ -141,35 +177,55 @@ export const useNucleusStore = create<NucleusState>((set, get) => ({
 
       return result.data;
     } catch (error: any) {
-      set({ error: error.response?.data?.error || 'Error al enviar respuesta' });
+      set({
+        error: error.response?.data?.error || "Error al enviar respuesta",
+      });
       return null;
     }
   },
 
-  uploadPhoto: async (connectionId: string, photoUrl: string, prompt: string) => {
+  uploadPhoto: async (
+    connectionId: string,
+    photoUri: string,
+    prompt: string,
+  ) => {
     try {
-      const result = await api.post(`/nucleus/${connectionId}/photos`, { photoUrl, prompt });
+      const result = await api.post(`/nucleus/${connectionId}/photos`, {
+        photoUrl: photoUri,
+        prompt,
+      });
 
       // Reload overview for updated progress
       await get().loadOverview(connectionId);
 
       return result.data;
     } catch (error: any) {
-      set({ error: error.response?.data?.error || 'Error al subir foto' });
+      set({ error: error.response?.data?.error || "Error al subir foto" });
       return null;
     }
   },
 
-  uploadVoiceNote: async (connectionId: string, audioUrl: string, duration: number, prompt: string) => {
+  uploadVoiceNote: async (
+    connectionId: string,
+    audioUri: string,
+    duration: number,
+    prompt: string,
+  ) => {
     try {
-      const result = await api.post(`/nucleus/${connectionId}/voice`, { audioUrl, duration, prompt });
+      const result = await api.post(`/nucleus/${connectionId}/voice`, {
+        audioUrl: audioUri,
+        duration,
+        prompt,
+      });
 
       // Reload overview for updated progress
       await get().loadOverview(connectionId);
 
       return result.data;
     } catch (error: any) {
-      set({ error: error.response?.data?.error || 'Error al enviar nota de voz' });
+      set({
+        error: error.response?.data?.error || "Error al enviar nota de voz",
+      });
       return null;
     }
   },

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -10,14 +10,25 @@ import {
   TouchableOpacity,
   KeyboardAvoidingView,
   Platform,
-} from 'react-native';
-import { useLocalSearchParams, router } from 'expo-router';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
-import { ProgressRing, Button } from '../../src/components';
-import { useConnectionStore } from '../../src/store/connection.store';
-import { joinConnection, leaveConnection, getSocket, SocketEvents } from '../../src/services/socket';
-import { colors, fontSize, fontWeight, spacing, borderRadius } from '../../src/utils/theme';
+} from "react-native";
+import { useLocalSearchParams, router } from "expo-router";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { Ionicons } from "@expo/vector-icons";
+import { ProgressRing, Button, GlobalHeader } from "../../src/components";
+import { useConnectionStore } from "../../src/store/connection.store";
+import {
+  joinConnection,
+  leaveConnection,
+  getSocket,
+  SocketEvents,
+} from "../../src/services/socket";
+import {
+  colors,
+  fontSize,
+  fontWeight,
+  spacing,
+  borderRadius,
+} from "../../src/utils/theme";
 
 export default function ConnectionDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -34,8 +45,8 @@ export default function ConnectionDetailScreen() {
     isLoading,
   } = useConnectionStore();
 
-  const [activeTab, setActiveTab] = useState<'nucleus' | 'chat'>('nucleus');
-  const [messageText, setMessageText] = useState('');
+  const [activeTab, setActiveTab] = useState<"nucleus" | "chat">("nucleus");
+  const [messageText, setMessageText] = useState("");
 
   useEffect(() => {
     if (id) {
@@ -58,8 +69,11 @@ export default function ConnectionDetailScreen() {
 
         // Presence events
         socket.on(SocketEvents.PRESENCE_JOINED, (data: { userId: string }) => {
-          if (activeConnection && data.userId !== activeConnection.initiatorId &&
-              data.userId !== activeConnection.receiverId) {
+          if (
+            activeConnection &&
+            data.userId !== activeConnection.initiatorId &&
+            data.userId !== activeConnection.receiverId
+          ) {
             return;
           }
           setOtherUserPresent(true);
@@ -80,7 +94,7 @@ export default function ConnectionDetailScreen() {
   }, [id]);
 
   useEffect(() => {
-    if (activeTab === 'chat' && id && activeConnection?.chatUnlocked) {
+    if (activeTab === "chat" && id && activeConnection?.chatUnlocked) {
       loadMessages(id);
     }
   }, [activeTab, id, activeConnection?.chatUnlocked]);
@@ -89,7 +103,7 @@ export default function ConnectionDetailScreen() {
     if (!id || !messageText.trim()) return;
     const success = await sendMessage(id, messageText.trim());
     if (success) {
-      setMessageText('');
+      setMessageText("");
     }
   };
 
@@ -108,32 +122,40 @@ export default function ConnectionDetailScreen() {
   }
 
   const { otherUser, progress, chatUnlocked, chatLevel } = activeConnection;
-  const photo = otherUser.photos[0] || `https://ui-avatars.com/api/?background=252540&color=fff&name=${encodeURIComponent(otherUser.name || 'U')}`;
+  const photo =
+    otherUser.photos[0] ||
+    `https://ui-avatars.com/api/?background=252540&color=fff&name=${encodeURIComponent(otherUser.name || "U")}`;
 
   const getChatLevelText = () => {
     switch (chatLevel) {
-      case 'none':
-        return 'Chat bloqueado - completa el núcleo para desbloquear';
-      case 'guided':
-        return 'Chat guiado - responde con mensajes sugeridos';
-      case 'voice':
-        return 'Notas de voz desbloqueadas';
-      case 'full':
-        return 'Chat completo desbloqueado';
+      case "none":
+        return "Chat bloqueado - completa el núcleo para desbloquear";
+      case "guided":
+        return "Chat guiado - responde con mensajes sugeridos";
+      case "voice":
+        return "Notas de voz desbloqueadas";
+      case "full":
+        return "Chat completo desbloqueado";
       default:
-        return '';
+        return "";
     }
   };
 
   return (
-    <SafeAreaView style={styles.container} edges={['bottom']}>
+    <SafeAreaView style={styles.container} edges={["bottom"]}>
+      {/* Global Header with notifications & settings */}
+      <GlobalHeader notificationCount={0} />
+
       <KeyboardAvoidingView
         style={styles.keyboardView}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
       >
         {/* Header */}
         <View style={styles.header}>
-          <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={() => router.back()}
+          >
             <Ionicons name="arrow-back" size={24} color={colors.text} />
           </TouchableOpacity>
           <Image source={{ uri: photo }} style={styles.avatar} />
@@ -148,7 +170,12 @@ export default function ConnectionDetailScreen() {
               )}
             </View>
             <View style={styles.progressRow}>
-              <ProgressRing progress={progress} size={40} strokeWidth={3} showPercentage={false} />
+              <ProgressRing
+                progress={progress}
+                size={40}
+                strokeWidth={3}
+                showPercentage={false}
+              />
               <Text style={styles.progressText}>{progress}% completado</Text>
             </View>
           </View>
@@ -157,28 +184,40 @@ export default function ConnectionDetailScreen() {
         {/* Tabs */}
         <View style={styles.tabs}>
           <TouchableOpacity
-            style={[styles.tab, activeTab === 'nucleus' && styles.tabActive]}
-            onPress={() => setActiveTab('nucleus')}
+            style={[styles.tab, activeTab === "nucleus" && styles.tabActive]}
+            onPress={() => setActiveTab("nucleus")}
           >
             <Ionicons
               name="planet"
               size={20}
-              color={activeTab === 'nucleus' ? colors.primary : colors.textMuted}
+              color={
+                activeTab === "nucleus" ? colors.primary : colors.textMuted
+              }
             />
-            <Text style={[styles.tabText, activeTab === 'nucleus' && styles.tabTextActive]}>
+            <Text
+              style={[
+                styles.tabText,
+                activeTab === "nucleus" && styles.tabTextActive,
+              ]}
+            >
               Núcleo
             </Text>
           </TouchableOpacity>
           <TouchableOpacity
-            style={[styles.tab, activeTab === 'chat' && styles.tabActive]}
-            onPress={() => setActiveTab('chat')}
+            style={[styles.tab, activeTab === "chat" && styles.tabActive]}
+            onPress={() => setActiveTab("chat")}
           >
             <Ionicons
               name="chatbubble"
               size={20}
-              color={activeTab === 'chat' ? colors.primary : colors.textMuted}
+              color={activeTab === "chat" ? colors.primary : colors.textMuted}
             />
-            <Text style={[styles.tabText, activeTab === 'chat' && styles.tabTextActive]}>
+            <Text
+              style={[
+                styles.tabText,
+                activeTab === "chat" && styles.tabTextActive,
+              ]}
+            >
               Chat
             </Text>
             {!chatUnlocked && (
@@ -188,25 +227,29 @@ export default function ConnectionDetailScreen() {
         </View>
 
         {/* Content */}
-        {activeTab === 'nucleus' ? (
-          <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
+        {activeTab === "nucleus" ? (
+          <ScrollView
+            style={styles.scrollView}
+            contentContainerStyle={styles.scrollContent}
+          >
             <View style={styles.nucleusPrompt}>
               <View style={styles.nucleusIconContainer}>
                 <Ionicons name="planet" size={64} color={colors.primary} />
               </View>
               <Text style={styles.nucleusTitle}>Núcleo de Conexión</Text>
               <Text style={styles.nucleusDescription}>
-                Completa actividades juntos para conocerse mejor y desbloquear el chat.
+                Completa actividades juntos para conocerse mejor y desbloquear
+                el chat.
               </Text>
 
               <View style={styles.progressOverview}>
                 <ProgressRing progress={progress} size={120} strokeWidth={10} />
                 <Text style={styles.progressLabel}>
                   {progress < 70
-                    ? `${70 - progress}% más para chat limitado`
+                    ? `${70 - progress}% más para chatear`
                     : progress < 100
-                    ? `${100 - progress}% más para chat ilimitado`
-                    : '¡Chat completamente desbloqueado!'}
+                      ? `${100 - progress}% más para chat ilimitado`
+                      : "¡Chat completamente desbloqueado!"}
                 </Text>
               </View>
 
@@ -240,11 +283,13 @@ export default function ConnectionDetailScreen() {
                             : styles.messageSent,
                         ]}
                       >
-                        <Text style={styles.messageText}>{message.content}</Text>
+                        <Text style={styles.messageText}>
+                          {message.content}
+                        </Text>
                         <Text style={styles.messageTime}>
                           {new Date(message.createdAt).toLocaleTimeString([], {
-                            hour: '2-digit',
-                            minute: '2-digit',
+                            hour: "2-digit",
+                            minute: "2-digit",
                           })}
                         </Text>
                       </View>
@@ -266,14 +311,19 @@ export default function ConnectionDetailScreen() {
                     multiline
                   />
                   <TouchableOpacity
-                    style={[styles.sendButton, !messageText.trim() && styles.sendButtonDisabled]}
+                    style={[
+                      styles.sendButton,
+                      !messageText.trim() && styles.sendButtonDisabled,
+                    ]}
                     onPress={handleSendMessage}
                     disabled={!messageText.trim()}
                   >
                     <Ionicons
                       name="send"
                       size={20}
-                      color={messageText.trim() ? colors.text : colors.textMuted}
+                      color={
+                        messageText.trim() ? colors.text : colors.textMuted
+                      }
                     />
                   </TouchableOpacity>
                 </View>
@@ -281,15 +331,18 @@ export default function ConnectionDetailScreen() {
             ) : (
               <View style={styles.chatLocked}>
                 <View style={styles.lockIconContainer}>
-                  <Ionicons name="lock-closed" size={48} color={colors.textMuted} />
+                  <Ionicons
+                    name="lock-closed"
+                    size={48}
+                    color={colors.textMuted}
+                  />
                 </View>
                 <Text style={styles.chatLockedTitle}>Chat bloqueado</Text>
                 <Text style={styles.chatLockedText}>
                   Completa el núcleo juntos para desbloquear el chat.
-                  {'\n\n'}
-                  Progreso actual: {progress}%
-                  {'\n'}
-                  Necesitas: 70% para chat limitado
+                  {"\n\n"}
+                  Progreso actual: {progress}%{"\n"}
+                  Necesitas: 70% para chatear
                 </Text>
                 <ProgressRing progress={progress} size={100} strokeWidth={8} />
                 <Button
@@ -317,12 +370,12 @@ const styles = StyleSheet.create({
   },
   loadingContainer: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
   },
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     padding: spacing.md,
     paddingTop: 0,
     borderBottomWidth: 1,
@@ -333,8 +386,8 @@ const styles = StyleSheet.create({
     height: 40,
     borderRadius: 20,
     backgroundColor: colors.backgroundCard,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     marginRight: spacing.sm,
   },
   avatar: {
@@ -347,8 +400,8 @@ const styles = StyleSheet.create({
     marginLeft: spacing.md,
   },
   nameRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: spacing.sm,
   },
   name: {
@@ -357,8 +410,8 @@ const styles = StyleSheet.create({
     fontWeight: fontWeight.semibold,
   },
   onlineIndicator: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: spacing.xs,
   },
   onlineDot: {
@@ -372,8 +425,8 @@ const styles = StyleSheet.create({
     fontSize: fontSize.xs,
   },
   progressRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: spacing.sm,
     marginTop: spacing.xs,
   },
@@ -382,15 +435,15 @@ const styles = StyleSheet.create({
     fontSize: fontSize.sm,
   },
   tabs: {
-    flexDirection: 'row',
+    flexDirection: "row",
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
   },
   tab: {
     flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
     gap: spacing.xs,
     paddingVertical: spacing.md,
   },
@@ -413,7 +466,7 @@ const styles = StyleSheet.create({
     padding: spacing.lg,
   },
   nucleusPrompt: {
-    alignItems: 'center',
+    alignItems: "center",
     paddingVertical: spacing.xl,
   },
   nucleusIconContainer: {
@@ -421,8 +474,8 @@ const styles = StyleSheet.create({
     height: 120,
     borderRadius: 60,
     backgroundColor: colors.backgroundCard,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     marginBottom: spacing.lg,
   },
   nucleusTitle: {
@@ -434,12 +487,12 @@ const styles = StyleSheet.create({
   nucleusDescription: {
     color: colors.textSecondary,
     fontSize: fontSize.md,
-    textAlign: 'center',
+    textAlign: "center",
     marginBottom: spacing.xl,
     lineHeight: 22,
   },
   progressOverview: {
-    alignItems: 'center',
+    alignItems: "center",
     marginBottom: spacing.xl,
   },
   progressLabel: {
@@ -453,28 +506,28 @@ const styles = StyleSheet.create({
   },
   noMessages: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     paddingVertical: spacing.xxl,
   },
   noMessagesText: {
     color: colors.textSecondary,
     fontSize: fontSize.md,
-    textAlign: 'center',
+    textAlign: "center",
   },
   messageBubble: {
-    maxWidth: '80%',
+    maxWidth: "80%",
     padding: spacing.md,
     borderRadius: borderRadius.lg,
     marginBottom: spacing.sm,
   },
   messageReceived: {
-    alignSelf: 'flex-start',
+    alignSelf: "flex-start",
     backgroundColor: colors.backgroundCard,
     borderBottomLeftRadius: 4,
   },
   messageSent: {
-    alignSelf: 'flex-end',
+    alignSelf: "flex-end",
     backgroundColor: colors.primary,
     borderBottomRightRadius: 4,
   },
@@ -483,21 +536,21 @@ const styles = StyleSheet.create({
     fontSize: fontSize.md,
   },
   messageTime: {
-    color: 'rgba(255,255,255,0.6)',
+    color: "rgba(255,255,255,0.6)",
     fontSize: fontSize.xs,
     marginTop: spacing.xs,
-    alignSelf: 'flex-end',
+    alignSelf: "flex-end",
   },
   chatLevelText: {
     color: colors.textMuted,
     fontSize: fontSize.xs,
-    textAlign: 'center',
+    textAlign: "center",
     paddingVertical: spacing.xs,
     backgroundColor: colors.backgroundLight,
   },
   inputContainer: {
-    flexDirection: 'row',
-    alignItems: 'flex-end',
+    flexDirection: "row",
+    alignItems: "flex-end",
     padding: spacing.md,
     borderTopWidth: 1,
     borderTopColor: colors.border,
@@ -518,16 +571,16 @@ const styles = StyleSheet.create({
     height: 44,
     borderRadius: 22,
     backgroundColor: colors.primary,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
   },
   sendButtonDisabled: {
     backgroundColor: colors.backgroundCard,
   },
   chatLocked: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     padding: spacing.xl,
   },
   lockIconContainer: {
@@ -535,8 +588,8 @@ const styles = StyleSheet.create({
     height: 100,
     borderRadius: 50,
     backgroundColor: colors.backgroundCard,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     marginBottom: spacing.lg,
   },
   chatLockedTitle: {
@@ -548,7 +601,7 @@ const styles = StyleSheet.create({
   chatLockedText: {
     color: colors.textSecondary,
     fontSize: fontSize.md,
-    textAlign: 'center',
+    textAlign: "center",
     marginBottom: spacing.lg,
     lineHeight: 24,
   },
