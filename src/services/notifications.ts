@@ -205,7 +205,7 @@ export class NotificationService {
     await Notifications.scheduleNotificationAsync({
       content: {
         title: "Test Notification 📬",
-        body: "This is a test notification from Linka",
+        body: "This is a test notification from Nuclia",
         data: { test: true },
       },
       trigger: { type: "timeInterval" as any, seconds: 2 },

@@ -8,4 +8,13 @@ export { VotingCard } from "./VotingCard";
 export { Modal } from "./Modal";
 export { GlobalHeader } from "./GlobalHeader";
 export { InterestsPicker } from "./InterestsPicker";
+export {
+  Heading,
+  HeadingBold,
+  Title,
+  Subtitle,
+  Body,
+  Caption,
+  Label,
+} from "./Typography";
 export type { ModalType } from "./Modal";

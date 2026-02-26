@@ -319,8 +319,16 @@ export default function RegisterScreen() {
     switch (step) {
       case 1:
         return formData.name.length >= 2;
-      case 2:
-        return formData.email.includes("@") && formData.password.length >= 6;
+      case 2: {
+        const pwValid =
+          formData.password.length >= 8 &&
+          /[A-Z]/.test(formData.password) &&
+          /[0-9]/.test(formData.password) &&
+          /[^a-zA-Z0-9]/.test(formData.password);
+        return (
+          formData.email.includes("@") && formData.email.length > 5 && pwValid
+        );
+      }
       case 3:
         return formData.age >= 18;
       case 4:
@@ -410,7 +418,12 @@ export default function RegisterScreen() {
                 placeholder="Tu nombre"
                 placeholderTextColor={colors.textMuted}
                 value={formData.name}
-                onChangeText={(v) => updateField("name", v)}
+                onChangeText={(v) =>
+                  updateField(
+                    "name",
+                    v.replace(/[^a-zA-ZáéíóúÁÉÍÓÚñÑüÜàèìòùÀÈÌÒÙ]/g, ""),
+                  )
+                }
                 autoFocus
                 autoCapitalize="words"
               />
@@ -475,7 +488,7 @@ export default function RegisterScreen() {
                 />
                 <TextInput
                   style={styles.input}
-                  placeholder="Contraseña (min. 6 caracteres)"
+                  placeholder="Contraseña"
                   placeholderTextColor={colors.textMuted}
                   value={formData.password}
                   onChangeText={(v) => updateField("password", v)}
@@ -483,6 +496,46 @@ export default function RegisterScreen() {
                 />
               </View>
             </Animated.View>
+
+            {/* Password requirements */}
+            {formData.password.length > 0 && (
+              <Animated.View
+                entering={FadeIn.duration(200)}
+                style={styles.passwordReqs}
+              >
+                {[
+                  {
+                    label: "Mínimo 8 caracteres",
+                    met: formData.password.length >= 8,
+                  },
+                  {
+                    label: "Una letra mayúscula",
+                    met: /[A-Z]/.test(formData.password),
+                  },
+                  {
+                    label: "Un número",
+                    met: /[0-9]/.test(formData.password),
+                  },
+                  {
+                    label: "Un símbolo (!@#$...)",
+                    met: /[^a-zA-Z0-9]/.test(formData.password),
+                  },
+                ].map((req) => (
+                  <View key={req.label} style={styles.reqRow}>
+                    <Ionicons
+                      name={req.met ? "checkmark-circle" : "ellipse-outline"}
+                      size={14}
+                      color={req.met ? colors.success : colors.textMuted}
+                    />
+                    <Text
+                      style={[styles.reqText, req.met && styles.reqTextMet]}
+                    >
+                      {req.label}
+                    </Text>
+                  </View>
+                ))}
+              </Animated.View>
+            )}
           </Animated.View>
         );
 
@@ -504,7 +557,7 @@ export default function RegisterScreen() {
                 entering={FadeInDown.delay(200)}
                 style={styles.stepTitle}
               >
-                Cuantos años tienes?
+                ¿Cuántos años tienes?
               </Animated.Text>
               <Animated.Text
                 entering={FadeInDown.delay(300)}
@@ -822,7 +875,7 @@ export default function RegisterScreen() {
             />
           )}
 
-          {step === 1 && (
+          {(step === 1 || step === 2) && (
             <View style={styles.loginLink}>
               <Text style={styles.loginText}>Ya tienes cuenta? </Text>
               <TouchableOpacity onPress={() => router.replace("/(auth)/login")}>
@@ -838,7 +891,7 @@ export default function RegisterScreen() {
         visible={showSuccessModal}
         onClose={handleSuccessModalClose}
         type="success"
-        title="Bienvenido a Linka!"
+        title="Bienvenido a Nuclia!"
         message={`Hola ${formData.name}! Tu cuenta ha sido creada. Es hora de hacer conexiones.`}
         buttonText="Empezar"
         onButtonPress={handleSuccessModalClose}
@@ -923,7 +976,7 @@ const styles = StyleSheet.create({
   stepTitle: {
     color: colors.text,
     fontSize: fontSize.xxl,
-    fontWeight: fontWeight.bold,
+    fontFamily: "CormorantGaramond_500Medium",
     textAlign: "center",
     marginBottom: spacing.xs,
   },
@@ -938,6 +991,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.xl,
     paddingVertical: spacing.lg,
     color: colors.text,
+    fontFamily: "Inter_400Regular",
     fontSize: fontSize.xl,
     textAlign: "center",
   },
@@ -957,6 +1011,22 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.md,
     color: colors.text,
     fontSize: fontSize.md,
+  },
+  passwordReqs: {
+    gap: 6,
+    paddingHorizontal: spacing.xs,
+  },
+  reqRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
+  reqText: {
+    color: colors.textMuted,
+    fontSize: fontSize.xs,
+  },
+  reqTextMet: {
+    color: colors.success,
   },
   ageContainer: {
     marginTop: spacing.lg,

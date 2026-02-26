@@ -653,7 +653,7 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: fontSize.xxl,
-    fontWeight: fontWeight.bold,
+    fontFamily: "Inter_700Bold",
     color: colors.text,
     marginBottom: spacing.xs,
   },

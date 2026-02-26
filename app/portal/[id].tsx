@@ -8,6 +8,7 @@ import {
   Image,
   ActivityIndicator,
   RefreshControl,
+  Alert,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams, router } from "expo-router";
@@ -108,6 +109,7 @@ export default function PortalScreen() {
   const [selectedUser, setSelectedUser] = useState<PortalUser | null>(null);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [connectedUserName, setConnectedUserName] = useState("");
+  const [activityModal, setActivityModal] = useState(false);
   const {
     initiateConnection,
     connections,
@@ -219,7 +221,19 @@ export default function PortalScreen() {
 
       {/* Heat Legend */}
       <View style={styles.legendContainer}>
-        <Text style={styles.legendLabel}>Actividad:</Text>
+        <View style={styles.legendLabelRow}>
+          <Text style={styles.legendLabel}>Actividad:</Text>
+          <TouchableOpacity
+            onPress={() => setActivityModal(true)}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          >
+            <Ionicons
+              name="help-circle-outline"
+              size={16}
+              color={colors.textMuted}
+            />
+          </TouchableOpacity>
+        </View>
         <View style={styles.legendItems}>
           <View style={styles.legendItem}>
             <View style={[styles.legendDot, { backgroundColor: "#FF1744" }]} />
@@ -441,6 +455,20 @@ export default function PortalScreen() {
         )}
       </ScrollView>
 
+      {/* Activity info Modal */}
+      <Modal
+        visible={activityModal}
+        onClose={() => setActivityModal(false)}
+        type="info"
+        title="Niveles de actividad"
+        message={
+          "Muy activo (rojo): conectado en las ultimas 24h\n\nActivo (naranja): conectado en los ultimos 3 dias\n\nMenos activo (gris): sin actividad reciente"
+        }
+        buttonText="Entendido"
+        onButtonPress={() => setActivityModal(false)}
+        dismissOnBackdrop
+      />
+
       {/* Success Modal */}
       <Modal
         visible={showSuccessModal}
@@ -520,6 +548,11 @@ const styles = StyleSheet.create({
   legendLabel: {
     color: colors.textSecondary,
     fontSize: fontSize.xs,
+  },
+  legendLabelRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
   },
   legendItems: {
     flexDirection: "row",

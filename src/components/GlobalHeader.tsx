@@ -1,9 +1,10 @@
 import React from "react";
-import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
+import { View, Text, TouchableOpacity, StyleSheet, Image } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { colors, spacing, fontSize, fontWeight } from "../utils/theme";
 import { useAuthStore } from "../store/auth.store";
+import { TextLogoLight } from "../assets/logo";
 
 interface GlobalHeaderProps {
   notificationCount?: number;
@@ -14,9 +15,13 @@ export function GlobalHeader({ notificationCount = 0 }: GlobalHeaderProps) {
 
   return (
     <View style={styles.container}>
-      {/* Logo - placeholder text for now */}
+      {/* Logo */}
       <View style={styles.logoContainer}>
-        <Text style={styles.logoText}>linka</Text>
+        <Image
+          source={TextLogoLight}
+          style={styles.logoImage}
+          resizeMode="contain"
+        />
       </View>
 
       {/* Right actions */}
@@ -76,10 +81,9 @@ const styles = StyleSheet.create({
   logoContainer: {
     flex: 1,
   },
-  logoText: {
-    fontSize: fontSize.xl,
-    fontWeight: fontWeight.bold,
-    color: colors.primary,
+  logoImage: {
+    height: 28,
+    width: 100,
   },
   actionsContainer: {
     flexDirection: "row",
@@ -100,7 +104,7 @@ const styles = StyleSheet.create({
   sparksText: {
     color: "#FFD700",
     fontSize: fontSize.sm,
-    fontWeight: fontWeight.bold,
+    fontFamily: "Inter_700Bold",
   },
   iconButton: {
     position: "relative",
@@ -121,6 +125,6 @@ const styles = StyleSheet.create({
   badgeText: {
     color: "white",
     fontSize: 10,
-    fontWeight: fontWeight.bold,
+    fontFamily: "Inter_700Bold",
   },
 });

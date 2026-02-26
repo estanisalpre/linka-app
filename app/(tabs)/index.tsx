@@ -238,7 +238,7 @@ const styles = StyleSheet.create({
   title: {
     color: colors.text,
     fontSize: fontSize.xxxl,
-    fontWeight: fontWeight.bold,
+    fontFamily: "CormorantGaramond_500Medium",
     marginBottom: spacing.sm,
   },
   subtitle: {
@@ -267,7 +267,7 @@ const styles = StyleSheet.create({
   portalTitle: {
     color: colors.text,
     fontSize: fontSize.lg,
-    fontWeight: fontWeight.semibold,
+    fontFamily: "Inter_600SemiBold",
     marginBottom: spacing.xs,
   },
   portalDescription: {

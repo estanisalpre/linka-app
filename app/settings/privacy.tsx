@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState } from "react";
 import {
   View,
   Text,
@@ -6,11 +6,17 @@ import {
   ScrollView,
   TouchableOpacity,
   Switch,
-} from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
-import { router } from 'expo-router';
-import { colors, fontSize, fontWeight, spacing, borderRadius } from '../../src/utils/theme';
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { Ionicons } from "@expo/vector-icons";
+import { router } from "expo-router";
+import {
+  colors,
+  fontSize,
+  fontWeight,
+  spacing,
+  borderRadius,
+} from "../../src/utils/theme";
 
 export default function PrivacyScreen() {
   // Estados de privacidad
@@ -23,7 +29,7 @@ export default function PrivacyScreen() {
   });
 
   const togglePrivacy = (key: keyof typeof privacy) => {
-    setPrivacy(prev => ({
+    setPrivacy((prev) => ({
       ...prev,
       [key]: !prev[key],
     }));
@@ -60,7 +66,7 @@ export default function PrivacyScreen() {
   );
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
+    <SafeAreaView style={styles.container} edges={["top"]}>
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity
@@ -83,7 +89,7 @@ export default function PrivacyScreen() {
             label="Mostrar estado en linea"
             description="Otros pueden ver cuando estas conectado"
             value={privacy.showOnlineStatus}
-            onToggle={() => togglePrivacy('showOnlineStatus')}
+            onToggle={() => togglePrivacy("showOnlineStatus")}
           />
 
           <PrivacyItem
@@ -91,7 +97,7 @@ export default function PrivacyScreen() {
             label="Ultima conexion"
             description="Mostrar cuando fue tu ultima actividad"
             value={privacy.showLastActive}
-            onToggle={() => togglePrivacy('showLastActive')}
+            onToggle={() => togglePrivacy("showLastActive")}
           />
 
           <PrivacyItem
@@ -99,7 +105,7 @@ export default function PrivacyScreen() {
             label="Mostrar distancia"
             description="Otros pueden ver a que distancia estas"
             value={privacy.showDistance}
-            onToggle={() => togglePrivacy('showDistance')}
+            onToggle={() => togglePrivacy("showDistance")}
           />
         </View>
 
@@ -112,7 +118,7 @@ export default function PrivacyScreen() {
             label="Confirmacion de lectura"
             description="Mostrar cuando has leido los mensajes"
             value={privacy.readReceipts}
-            onToggle={() => togglePrivacy('readReceipts')}
+            onToggle={() => togglePrivacy("readReceipts")}
           />
         </View>
 
@@ -125,7 +131,7 @@ export default function PrivacyScreen() {
             label="Bloquear capturas"
             description="Impedir capturas de pantalla en el chat"
             value={privacy.blockScreenshots}
-            onToggle={() => togglePrivacy('blockScreenshots')}
+            onToggle={() => togglePrivacy("blockScreenshots")}
           />
 
           <TouchableOpacity style={styles.menuItem}>
@@ -136,7 +142,11 @@ export default function PrivacyScreen() {
               <Text style={styles.menuItemLabel}>Usuarios bloqueados</Text>
               <Text style={styles.menuItemValue}>0 usuarios</Text>
             </View>
-            <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />
+            <Ionicons
+              name="chevron-forward"
+              size={20}
+              color={colors.textMuted}
+            />
           </TouchableOpacity>
         </View>
 
@@ -150,29 +160,51 @@ export default function PrivacyScreen() {
             </View>
             <View style={styles.menuItemContent}>
               <Text style={styles.menuItemLabel}>Descargar mis datos</Text>
-              <Text style={styles.menuItemValue}>Exportar toda tu informacion</Text>
+              <Text style={styles.menuItemValue}>
+                Exportar toda tu informacion
+              </Text>
             </View>
-            <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />
+            <Ionicons
+              name="chevron-forward"
+              size={20}
+              color={colors.textMuted}
+            />
           </TouchableOpacity>
 
           <TouchableOpacity style={styles.menuItem}>
             <View style={styles.menuIcon}>
-              <Ionicons name="document-text" size={22} color={colors.textSecondary} />
+              <Ionicons
+                name="document-text"
+                size={22}
+                color={colors.textSecondary}
+              />
             </View>
             <View style={styles.menuItemContent}>
               <Text style={styles.menuItemLabel}>Politica de privacidad</Text>
             </View>
-            <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />
+            <Ionicons
+              name="chevron-forward"
+              size={20}
+              color={colors.textMuted}
+            />
           </TouchableOpacity>
 
           <TouchableOpacity style={styles.menuItem}>
             <View style={styles.menuIcon}>
-              <Ionicons name="document" size={22} color={colors.textSecondary} />
+              <Ionicons
+                name="document"
+                size={22}
+                color={colors.textSecondary}
+              />
             </View>
             <View style={styles.menuItemContent}>
               <Text style={styles.menuItemLabel}>Terminos de servicio</Text>
             </View>
-            <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />
+            <Ionicons
+              name="chevron-forward"
+              size={20}
+              color={colors.textMuted}
+            />
           </TouchableOpacity>
         </View>
 
@@ -182,7 +214,8 @@ export default function PrivacyScreen() {
           <View style={styles.infoContent}>
             <Text style={styles.infoTitle}>Tu privacidad es importante</Text>
             <Text style={styles.infoText}>
-              Linka nunca compartira tu informacion personal con terceros sin tu consentimiento.
+              Nuclia nunca compartira tu informacion personal con terceros sin
+              tu consentimiento.
             </Text>
           </View>
         </View>
@@ -197,9 +230,9 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
   },
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.md,
     borderBottomWidth: 1,
@@ -210,8 +243,8 @@ const styles = StyleSheet.create({
     height: 40,
     borderRadius: 20,
     backgroundColor: colors.backgroundCard,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
   },
   headerTitle: {
     color: colors.text,
@@ -237,8 +270,8 @@ const styles = StyleSheet.create({
     marginBottom: spacing.md,
   },
   privacyItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     backgroundColor: colors.backgroundCard,
     padding: spacing.md,
     borderRadius: borderRadius.md,
@@ -248,9 +281,9 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: 'rgba(34, 211, 238, 0.1)',
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: "rgba(34, 211, 238, 0.1)",
+    justifyContent: "center",
+    alignItems: "center",
   },
   privacyInfo: {
     flex: 1,
@@ -267,8 +300,8 @@ const styles = StyleSheet.create({
     fontSize: fontSize.sm,
   },
   menuItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     backgroundColor: colors.backgroundCard,
     padding: spacing.md,
     borderRadius: borderRadius.md,
@@ -279,8 +312,8 @@ const styles = StyleSheet.create({
     height: 40,
     borderRadius: 20,
     backgroundColor: colors.backgroundLight,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
   },
   menuItemContent: {
     flex: 1,
@@ -296,12 +329,12 @@ const styles = StyleSheet.create({
     marginTop: spacing.xs,
   },
   infoCard: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
+    flexDirection: "row",
+    alignItems: "flex-start",
     marginHorizontal: spacing.lg,
     marginTop: spacing.lg,
     padding: spacing.lg,
-    backgroundColor: 'rgba(34, 211, 238, 0.1)',
+    backgroundColor: "rgba(34, 211, 238, 0.1)",
     borderRadius: borderRadius.lg,
     gap: spacing.md,
   },

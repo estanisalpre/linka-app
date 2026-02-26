@@ -1,4 +1,4 @@
-import React from 'react';
+import React from "react";
 import {
   TouchableOpacity,
   Text,
@@ -6,15 +6,21 @@ import {
   ActivityIndicator,
   ViewStyle,
   TextStyle,
-} from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
-import { colors, borderRadius, fontSize, fontWeight, spacing } from '../utils/theme';
+} from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
+import {
+  colors,
+  borderRadius,
+  fontSize,
+  fontWeight,
+  spacing,
+} from "../utils/theme";
 
 interface ButtonProps {
   title: string;
   onPress: () => void;
-  variant?: 'primary' | 'secondary' | 'outline' | 'ghost';
-  size?: 'sm' | 'md' | 'lg';
+  variant?: "primary" | "secondary" | "outline" | "ghost";
+  size?: "sm" | "md" | "lg";
   disabled?: boolean;
   loading?: boolean;
   style?: ViewStyle;
@@ -25,8 +31,8 @@ interface ButtonProps {
 export const Button: React.FC<ButtonProps> = ({
   title,
   onPress,
-  variant = 'primary',
-  size = 'md',
+  variant = "primary",
+  size = "md",
   disabled = false,
   loading = false,
   style,
@@ -47,7 +53,7 @@ export const Button: React.FC<ButtonProps> = ({
     lg: { fontSize: fontSize.lg },
   };
 
-  if (variant === 'primary') {
+  if (variant === "primary") {
     return (
       <TouchableOpacity
         onPress={onPress}
@@ -68,7 +74,9 @@ export const Button: React.FC<ButtonProps> = ({
           {loading ? (
             <ActivityIndicator color={colors.text} />
           ) : (
-            <Text style={[styles.text, textSizeStyles[size], textStyle]}>{title}</Text>
+            <Text style={[styles.text, textSizeStyles[size], textStyle]}>
+              {title}
+            </Text>
           )}
         </LinearGradient>
       </TouchableOpacity>
@@ -82,9 +90,9 @@ export const Button: React.FC<ButtonProps> = ({
       style={[
         styles.button,
         sizeStyles[size],
-        variant === 'secondary' && styles.secondaryButton,
-        variant === 'outline' && styles.outlineButton,
-        variant === 'ghost' && styles.ghostButton,
+        variant === "secondary" && styles.secondaryButton,
+        variant === "outline" && styles.outlineButton,
+        variant === "ghost" && styles.ghostButton,
         isDisabled && styles.disabledButton,
         fullWidth && styles.fullWidth,
         style,
@@ -93,15 +101,19 @@ export const Button: React.FC<ButtonProps> = ({
     >
       {loading ? (
         <ActivityIndicator
-          color={variant === 'outline' || variant === 'ghost' ? colors.primary : colors.text}
+          color={
+            variant === "outline" || variant === "ghost"
+              ? colors.primary
+              : colors.text
+          }
         />
       ) : (
         <Text
           style={[
             styles.text,
             textSizeStyles[size],
-            variant === 'outline' && styles.outlineText,
-            variant === 'ghost' && styles.ghostText,
+            variant === "outline" && styles.outlineText,
+            variant === "ghost" && styles.ghostText,
             isDisabled && styles.disabledText,
             textStyle,
           ]}
@@ -116,9 +128,9 @@ export const Button: React.FC<ButtonProps> = ({
 const styles = StyleSheet.create({
   button: {
     borderRadius: borderRadius.lg,
-    alignItems: 'center',
-    justifyContent: 'center',
-    flexDirection: 'row',
+    alignItems: "center",
+    justifyContent: "center",
+    flexDirection: "row",
   },
   primaryButton: {
     borderRadius: borderRadius.lg,
@@ -127,25 +139,25 @@ const styles = StyleSheet.create({
     backgroundColor: colors.secondary,
   },
   outlineButton: {
-    backgroundColor: 'transparent',
+    backgroundColor: "transparent",
     borderWidth: 2,
     borderColor: colors.primary,
   },
   ghostButton: {
-    backgroundColor: 'transparent',
+    backgroundColor: "transparent",
   },
   disabledButton: {
     opacity: 0.5,
   },
   fullWidth: {
-    width: '100%',
+    width: "100%",
   },
   text: {
     color: colors.text,
-    fontWeight: fontWeight.semibold,
+    fontFamily: "Inter_500Medium",
   },
   outlineText: {
-    color: colors.primary,
+    color: colors.textSecondary,
   },
   ghostText: {
     color: colors.primary,

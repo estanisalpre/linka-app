@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import {
   View,
   Text,
@@ -10,7 +10,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { Button } from "../src/components";
+import { Button, Modal } from "../src/components";
 import { useAuthStore } from "../src/store/auth.store";
 import {
   colors,
@@ -23,19 +23,14 @@ import {
 
 export default function SettingsScreen() {
   const { logout } = useAuthStore();
+  const [logoutModal, setLogoutModal] = useState(false);
 
-  const handleLogout = () => {
-    Alert.alert("Cerrar sesión", "¿Estás seguro que quieres cerrar sesión?", [
-      {
-        text: "Cancelar",
-        style: "cancel",
-      },
-      {
-        text: "Cerrar sesión",
-        style: "destructive",
-        onPress: () => logout(),
-      },
-    ]);
+  const handleLogout = () => setLogoutModal(true);
+
+  const confirmLogout = async () => {
+    setLogoutModal(false);
+    await logout();
+    router.replace("/(auth)/login");
   };
 
   return (
@@ -232,8 +227,8 @@ export default function SettingsScreen() {
             style={styles.settingItem}
             onPress={() => {
               Alert.alert(
-                "Linka",
-                "Versión 1.0.0\n\n© 2025 Linka. Todos los derechos reservados.",
+                "Nuclia",
+                "Versión 1.0.0\n\n© 2025 Nuclia. Todos los derechos reservados.",
               );
             }}
           >
@@ -270,6 +265,20 @@ export default function SettingsScreen() {
             fullWidth
           />
         </View>
+
+        {/* Logout confirmation modal */}
+        <Modal
+          visible={logoutModal}
+          onClose={() => setLogoutModal(false)}
+          type="warning"
+          title="Cerrar sesión"
+          message="¿Estás seguro que quieres cerrar sesión?"
+          buttonText="Cerrar sesión"
+          onButtonPress={confirmLogout}
+          secondaryButtonText="Cancelar"
+          onSecondaryButtonPress={() => setLogoutModal(false)}
+          dismissOnBackdrop
+        />
 
         {/* Danger zone */}
         <View style={styles.dangerSection}>

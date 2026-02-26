@@ -415,7 +415,7 @@ export default function ProfileScreen() {
         </View>
 
         {/* Version */}
-        <Text style={styles.version}>Linka v1.0.0</Text>
+        <Text style={styles.version}>Nuclia v1.0.0</Text>
       </ScrollView>
     </SafeAreaView>
   );
@@ -540,7 +540,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     color: colors.text,
     fontSize: fontSize.lg,
-    fontWeight: fontWeight.semibold,
+    fontFamily: "Inter_600SemiBold",
   },
   bio: {
     color: colors.textSecondary,

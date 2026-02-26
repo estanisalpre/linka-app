@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState } from "react";
 import {
   View,
   Text,
@@ -6,11 +6,17 @@ import {
   ScrollView,
   TouchableOpacity,
   Linking,
-} from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
-import { router } from 'expo-router';
-import { colors, fontSize, fontWeight, spacing, borderRadius } from '../../src/utils/theme';
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { Ionicons } from "@expo/vector-icons";
+import { router } from "expo-router";
+import {
+  colors,
+  fontSize,
+  fontWeight,
+  spacing,
+  borderRadius,
+} from "../../src/utils/theme";
 
 interface FAQItem {
   question: string;
@@ -19,28 +25,34 @@ interface FAQItem {
 
 const FAQ_ITEMS: FAQItem[] = [
   {
-    question: 'Como funcionan las chispas?',
-    answer: 'Las chispas son la moneda virtual de Linka. Las usas para abrir nucleos con otras personas, enviar regalos y destacar tu perfil. Los nuevos usuarios reciben 20 chispas gratis!',
+    question: "Como funcionan las chispas?",
+    answer:
+      "Las chispas son la moneda virtual de Nuclia. Las usas para abrir nucleos con otras personas, enviar regalos y destacar tu perfil. Los nuevos usuarios reciben 20 chispas gratis!",
   },
   {
-    question: 'Que es el nucleo?',
-    answer: 'El nucleo es donde construyes una conexion real con otra persona. Completan actividades juntos, responden preguntas y se conocen antes de poder chatear libremente.',
+    question: "Que es el nucleo?",
+    answer:
+      "El nucleo es donde construyes una conexion real con otra persona. Completan actividades juntos, responden preguntas y se conocen antes de poder chatear libremente.",
   },
   {
-    question: 'Cuantas chispas necesito para conectar?',
-    answer: 'Abrir un nucleo con alguien cuesta 10 chispas. Una vez abierto, pueden completar el nucleo sin costo adicional.',
+    question: "Cuantas chispas necesito para conectar?",
+    answer:
+      "Abrir un nucleo con alguien cuesta 10 chispas. Una vez abierto, pueden completar el nucleo sin costo adicional.",
   },
   {
-    question: 'Como desbloqueo el chat?',
-    answer: 'El chat se desbloquea cuando completas el 70% del nucleo con esa persona. Al 100% tendras chat ilimitado.',
+    question: "Como desbloqueo el chat?",
+    answer:
+      "El chat se desbloquea cuando completas el 70% del nucleo con esa persona. Al 100% tendras chat ilimitado.",
   },
   {
-    question: 'Puedo recuperar mis chispas?',
-    answer: 'Las chispas gastadas en acciones no son reembolsables, excepto en casos de errores tecnicos. Contacta soporte si tuviste algun problema.',
+    question: "Puedo recuperar mis chispas?",
+    answer:
+      "Las chispas gastadas en acciones no son reembolsables, excepto en casos de errores tecnicos. Contacta soporte si tuviste algun problema.",
   },
   {
-    question: 'Como elimino mi cuenta?',
-    answer: 'Ve a Preferencias > Cuenta > Eliminar cuenta. Esta accion es irreversible y borrara todos tus datos.',
+    question: "Como elimino mi cuenta?",
+    answer:
+      "Ve a Preferencias > Cuenta > Eliminar cuenta. Esta accion es irreversible y borrara todos tus datos.",
   },
 ];
 
@@ -53,20 +65,20 @@ export default function HelpScreen() {
 
   const handleContact = (method: string) => {
     switch (method) {
-      case 'email':
-        Linking.openURL('mailto:soporte@linka.app');
+      case "email":
+        Linking.openURL("mailto:soporte@nuclia.app");
         break;
-      case 'instagram':
-        Linking.openURL('https://instagram.com/linkaapp');
+      case "instagram":
+        Linking.openURL("https://instagram.com/nucliaapp");
         break;
-      case 'twitter':
-        Linking.openURL('https://twitter.com/linkaapp');
+      case "twitter":
+        Linking.openURL("https://twitter.com/nucliaapp");
         break;
     }
   };
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
+    <SafeAreaView style={styles.container} edges={["top"]}>
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity
@@ -87,9 +99,14 @@ export default function HelpScreen() {
           <View style={styles.contactGrid}>
             <TouchableOpacity
               style={styles.contactItem}
-              onPress={() => handleContact('email')}
+              onPress={() => handleContact("email")}
             >
-              <View style={[styles.contactIcon, { backgroundColor: 'rgba(139, 92, 246, 0.1)' }]}>
+              <View
+                style={[
+                  styles.contactIcon,
+                  { backgroundColor: "rgba(139, 92, 246, 0.1)" },
+                ]}
+              >
                 <Ionicons name="mail" size={24} color={colors.primary} />
               </View>
               <Text style={styles.contactLabel}>Email</Text>
@@ -97,19 +114,33 @@ export default function HelpScreen() {
 
             <TouchableOpacity
               style={styles.contactItem}
-              onPress={() => handleContact('instagram')}
+              onPress={() => handleContact("instagram")}
             >
-              <View style={[styles.contactIcon, { backgroundColor: 'rgba(236, 72, 153, 0.1)' }]}>
-                <Ionicons name="logo-instagram" size={24} color={colors.secondary} />
+              <View
+                style={[
+                  styles.contactIcon,
+                  { backgroundColor: "rgba(236, 72, 153, 0.1)" },
+                ]}
+              >
+                <Ionicons
+                  name="logo-instagram"
+                  size={24}
+                  color={colors.secondary}
+                />
               </View>
               <Text style={styles.contactLabel}>Instagram</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
               style={styles.contactItem}
-              onPress={() => handleContact('twitter')}
+              onPress={() => handleContact("twitter")}
             >
-              <View style={[styles.contactIcon, { backgroundColor: 'rgba(34, 211, 238, 0.1)' }]}>
+              <View
+                style={[
+                  styles.contactIcon,
+                  { backgroundColor: "rgba(34, 211, 238, 0.1)" },
+                ]}
+              >
                 <Ionicons name="logo-twitter" size={24} color={colors.accent} />
               </View>
               <Text style={styles.contactLabel}>Twitter</Text>
@@ -131,7 +162,7 @@ export default function HelpScreen() {
               <View style={styles.faqHeader}>
                 <Text style={styles.faqQuestion}>{item.question}</Text>
                 <Ionicons
-                  name={expandedFAQ === index ? 'chevron-up' : 'chevron-down'}
+                  name={expandedFAQ === index ? "chevron-up" : "chevron-down"}
                   size={20}
                   color={colors.textMuted}
                 />
@@ -153,9 +184,15 @@ export default function HelpScreen() {
             </View>
             <View style={styles.resourceContent}>
               <Text style={styles.resourceLabel}>Guia de uso</Text>
-              <Text style={styles.resourceDescription}>Aprende a sacar el maximo de Linka</Text>
+              <Text style={styles.resourceDescription}>
+                Aprende a sacar el maximo de Nuclia
+              </Text>
             </View>
-            <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />
+            <Ionicons
+              name="chevron-forward"
+              size={20}
+              color={colors.textMuted}
+            />
           </TouchableOpacity>
 
           <TouchableOpacity style={styles.resourceItem}>
@@ -164,9 +201,15 @@ export default function HelpScreen() {
             </View>
             <View style={styles.resourceContent}>
               <Text style={styles.resourceLabel}>Centro de seguridad</Text>
-              <Text style={styles.resourceDescription}>Tips para mantenerte seguro</Text>
+              <Text style={styles.resourceDescription}>
+                Tips para mantenerte seguro
+              </Text>
             </View>
-            <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />
+            <Ionicons
+              name="chevron-forward"
+              size={20}
+              color={colors.textMuted}
+            />
           </TouchableOpacity>
 
           <TouchableOpacity style={styles.resourceItem}>
@@ -175,9 +218,15 @@ export default function HelpScreen() {
             </View>
             <View style={styles.resourceContent}>
               <Text style={styles.resourceLabel}>Normas de comunidad</Text>
-              <Text style={styles.resourceDescription}>Lo que esperamos de todos</Text>
+              <Text style={styles.resourceDescription}>
+                Lo que esperamos de todos
+              </Text>
             </View>
-            <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />
+            <Ionicons
+              name="chevron-forward"
+              size={20}
+              color={colors.textMuted}
+            />
           </TouchableOpacity>
         </View>
 
@@ -189,8 +238,10 @@ export default function HelpScreen() {
 
         {/* Version */}
         <View style={styles.versionContainer}>
-          <Text style={styles.versionText}>Linka v1.0.0</Text>
-          <Text style={styles.versionSubtext}>Hecho con amor en Latinoamerica</Text>
+          <Text style={styles.versionText}>Nuclia v1.0.0</Text>
+          <Text style={styles.versionSubtext}>
+            Hecho con amor en Latinoamerica
+          </Text>
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -203,9 +254,9 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
   },
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.md,
     borderBottomWidth: 1,
@@ -216,8 +267,8 @@ const styles = StyleSheet.create({
     height: 40,
     borderRadius: 20,
     backgroundColor: colors.backgroundCard,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
   },
   headerTitle: {
     color: colors.text,
@@ -243,18 +294,18 @@ const styles = StyleSheet.create({
     marginBottom: spacing.md,
   },
   contactGrid: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
+    flexDirection: "row",
+    justifyContent: "space-around",
   },
   contactItem: {
-    alignItems: 'center',
+    alignItems: "center",
   },
   contactIcon: {
     width: 60,
     height: 60,
     borderRadius: 30,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     marginBottom: spacing.sm,
   },
   contactLabel: {
@@ -268,9 +319,9 @@ const styles = StyleSheet.create({
     marginBottom: spacing.sm,
   },
   faqHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
   },
   faqQuestion: {
     flex: 1,
@@ -289,8 +340,8 @@ const styles = StyleSheet.create({
     borderTopColor: colors.border,
   },
   resourceItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     backgroundColor: colors.backgroundCard,
     padding: spacing.md,
     borderRadius: borderRadius.md,
@@ -301,8 +352,8 @@ const styles = StyleSheet.create({
     height: 44,
     borderRadius: 22,
     backgroundColor: colors.backgroundLight,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
   },
   resourceContent: {
     flex: 1,
@@ -318,9 +369,9 @@ const styles = StyleSheet.create({
     marginTop: spacing.xs,
   },
   reportButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
     marginHorizontal: spacing.lg,
     marginTop: spacing.lg,
     padding: spacing.md,
@@ -334,7 +385,7 @@ const styles = StyleSheet.create({
     fontWeight: fontWeight.medium,
   },
   versionContainer: {
-    alignItems: 'center',
+    alignItems: "center",
     marginTop: spacing.xl,
     paddingHorizontal: spacing.lg,
   },

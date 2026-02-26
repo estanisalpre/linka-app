@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -6,16 +6,23 @@ import {
   ScrollView,
   TouchableOpacity,
   ActivityIndicator,
-} from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
-import { router } from 'expo-router';
-import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
-import { Button, Modal } from '../../src/components';
-import { useAuthStore } from '../../src/store/auth.store';
-import { sparksApi } from '../../src/services/api';
-import { colors, fontSize, fontWeight, spacing, borderRadius, shadows } from '../../src/utils/theme';
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { Ionicons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
+import { router } from "expo-router";
+import Animated, { FadeInDown, FadeInUp } from "react-native-reanimated";
+import { Button, Modal } from "../../src/components";
+import { useAuthStore } from "../../src/store/auth.store";
+import { sparksApi } from "../../src/services/api";
+import {
+  colors,
+  fontSize,
+  fontWeight,
+  spacing,
+  borderRadius,
+  shadows,
+} from "../../src/utils/theme";
 
 interface SparkPack {
   id: string;
@@ -55,7 +62,7 @@ export default function SparksScreen() {
       setPacks(packsRes.data);
       setPrices(pricesRes.data);
     } catch (error) {
-      console.error('Error loading sparks data:', error);
+      console.error("Error loading sparks data:", error);
     } finally {
       setIsLoading(false);
     }
@@ -70,7 +77,7 @@ export default function SparksScreen() {
       // Reload user data to update sparks balance
       // In a real app, you'd update the auth store
     } catch (error) {
-      console.error('Purchase error:', error);
+      console.error("Purchase error:", error);
     } finally {
       setPurchaseLoading(null);
     }
@@ -91,7 +98,7 @@ export default function SparksScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
+    <SafeAreaView style={styles.container} edges={["top"]}>
       <ScrollView contentContainerStyle={styles.content}>
         {/* Header */}
         <View style={styles.header}>
@@ -108,7 +115,7 @@ export default function SparksScreen() {
         {/* Balance Card */}
         <Animated.View entering={FadeInDown.delay(100).springify()}>
           <LinearGradient
-            colors={['#FFD700', '#FFA500', '#FF8C00']}
+            colors={["#FFD700", "#FFA500", "#FF8C00"]}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={styles.balanceCard}
@@ -129,31 +136,57 @@ export default function SparksScreen() {
           <Text style={styles.sectionTitle}>Que puedes hacer con chispas?</Text>
           <View style={styles.actionsGrid}>
             <View style={styles.actionItem}>
-              <View style={[styles.actionIcon, { backgroundColor: 'rgba(139, 92, 246, 0.15)' }]}>
+              <View
+                style={[
+                  styles.actionIcon,
+                  { backgroundColor: "rgba(139, 92, 246, 0.15)" },
+                ]}
+              >
                 <Ionicons name="planet" size={24} color={colors.primary} />
               </View>
               <Text style={styles.actionName}>Abrir Nucleo</Text>
-              <Text style={styles.actionCost}>{prices?.open_nucleus || 10} chispas</Text>
+              <Text style={styles.actionCost}>
+                {prices?.open_nucleus || 10} chispas
+              </Text>
             </View>
 
             <View style={styles.actionItem}>
-              <View style={[styles.actionIcon, { backgroundColor: 'rgba(236, 72, 153, 0.15)' }]}>
+              <View
+                style={[
+                  styles.actionIcon,
+                  { backgroundColor: "rgba(236, 72, 153, 0.15)" },
+                ]}
+              >
                 <Ionicons name="heart" size={24} color={colors.secondary} />
               </View>
               <Text style={styles.actionName}>Super Like</Text>
-              <Text style={styles.actionCost}>{prices?.super_like || 5} chispas</Text>
+              <Text style={styles.actionCost}>
+                {prices?.super_like || 5} chispas
+              </Text>
             </View>
 
             <View style={styles.actionItem}>
-              <View style={[styles.actionIcon, { backgroundColor: 'rgba(34, 211, 238, 0.15)' }]}>
+              <View
+                style={[
+                  styles.actionIcon,
+                  { backgroundColor: "rgba(34, 211, 238, 0.15)" },
+                ]}
+              >
                 <Ionicons name="rocket" size={24} color={colors.accent} />
               </View>
               <Text style={styles.actionName}>Boost 30min</Text>
-              <Text style={styles.actionCost}>{prices?.boost_30min || 12} chispas</Text>
+              <Text style={styles.actionCost}>
+                {prices?.boost_30min || 12} chispas
+              </Text>
             </View>
 
             <View style={styles.actionItem}>
-              <View style={[styles.actionIcon, { backgroundColor: 'rgba(251, 191, 36, 0.15)' }]}>
+              <View
+                style={[
+                  styles.actionIcon,
+                  { backgroundColor: "rgba(251, 191, 36, 0.15)" },
+                ]}
+              >
                 <Ionicons name="gift" size={24} color={colors.warning} />
               </View>
               <Text style={styles.actionName}>Regalos</Text>
@@ -172,7 +205,10 @@ export default function SparksScreen() {
                 entering={FadeInUp.delay(400 + index * 100).springify()}
               >
                 <TouchableOpacity
-                  style={[styles.packCard, pack.isFeatured && styles.packCardFeatured]}
+                  style={[
+                    styles.packCard,
+                    pack.isFeatured && styles.packCardFeatured,
+                  ]}
                   onPress={() => handlePurchase(pack)}
                   disabled={purchaseLoading === pack.id}
                   activeOpacity={0.8}
@@ -203,12 +239,15 @@ export default function SparksScreen() {
                     {purchaseLoading === pack.id ? (
                       <ActivityIndicator size="small" color={colors.warning} />
                     ) : (
-                      <Text style={styles.packPrice}>{formatPrice(pack.price)}</Text>
+                      <Text style={styles.packPrice}>
+                        {formatPrice(pack.price)}
+                      </Text>
                     )}
                   </View>
 
                   <Text style={styles.packPerSpark}>
-                    ${(pack.price / (pack.sparks + pack.bonus)).toFixed(3)}/chispa
+                    ${(pack.price / (pack.sparks + pack.bonus)).toFixed(3)}
+                    /chispa
                   </Text>
                 </TouchableOpacity>
               </Animated.View>
@@ -219,10 +258,15 @@ export default function SparksScreen() {
         {/* Info */}
         <Animated.View entering={FadeInDown.delay(600).springify()}>
           <View style={styles.infoCard}>
-            <Ionicons name="information-circle" size={24} color={colors.textMuted} />
+            <Ionicons
+              name="information-circle"
+              size={24}
+              color={colors.textMuted}
+            />
             <Text style={styles.infoText}>
-              Las chispas son la moneda virtual de Linka. Usalas para conectar con personas,
-              enviar regalos y destacar tu perfil. Los usuarios nuevos reciben 20 chispas gratis!
+              Las chispas son la moneda virtual de Nuclia. Usalas para conectar
+              con personas, enviar regalos y destacar tu perfil. Los usuarios
+              nuevos reciben 20 chispas gratis!
             </Text>
           </View>
         </Animated.View>
@@ -230,10 +274,12 @@ export default function SparksScreen() {
         {/* Transaction History Link */}
         <TouchableOpacity
           style={styles.historyLink}
-          onPress={() => router.push('/sparks/history')}
+          onPress={() => router.push("/sparks/history")}
         >
           <Ionicons name="time" size={20} color={colors.primary} />
-          <Text style={styles.historyLinkText}>Ver historial de transacciones</Text>
+          <Text style={styles.historyLinkText}>
+            Ver historial de transacciones
+          </Text>
           <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />
         </TouchableOpacity>
       </ScrollView>
@@ -262,16 +308,16 @@ const styles = StyleSheet.create({
   },
   loadingContainer: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
   },
   content: {
     paddingBottom: spacing.xxl,
   },
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.md,
   },
@@ -280,8 +326,8 @@ const styles = StyleSheet.create({
     height: 40,
     borderRadius: 20,
     backgroundColor: colors.backgroundCard,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
   },
   headerTitle: {
     color: colors.text,
@@ -292,8 +338,8 @@ const styles = StyleSheet.create({
     width: 40,
   },
   balanceCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     marginHorizontal: spacing.lg,
     marginBottom: spacing.xl,
     padding: spacing.lg,
@@ -304,26 +350,26 @@ const styles = StyleSheet.create({
     width: 70,
     height: 70,
     borderRadius: 35,
-    backgroundColor: 'rgba(26, 26, 46, 0.2)',
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: "rgba(26, 26, 46, 0.2)",
+    justifyContent: "center",
+    alignItems: "center",
     marginRight: spacing.lg,
   },
   balanceInfo: {
     flex: 1,
   },
   balanceLabel: {
-    color: 'rgba(26, 26, 46, 0.7)',
+    color: "rgba(26, 26, 46, 0.7)",
     fontSize: fontSize.sm,
   },
   balanceValue: {
-    color: '#1a1a2e',
+    color: "#1a1a2e",
     fontSize: 42,
     fontWeight: fontWeight.bold,
     lineHeight: 48,
   },
   balanceSubtext: {
-    color: 'rgba(26, 26, 46, 0.7)',
+    color: "rgba(26, 26, 46, 0.7)",
     fontSize: fontSize.sm,
   },
   sectionTitle: {
@@ -334,21 +380,21 @@ const styles = StyleSheet.create({
     marginBottom: spacing.md,
   },
   actionsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
+    flexDirection: "row",
+    flexWrap: "wrap",
     paddingHorizontal: spacing.md,
     marginBottom: spacing.xl,
   },
   actionItem: {
-    width: '50%',
+    width: "50%",
     padding: spacing.sm,
   },
   actionIcon: {
     width: 50,
     height: 50,
     borderRadius: 25,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     marginBottom: spacing.sm,
   },
   actionName: {
@@ -361,13 +407,13 @@ const styles = StyleSheet.create({
     fontSize: fontSize.xs,
   },
   packsContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
+    flexDirection: "row",
+    flexWrap: "wrap",
     paddingHorizontal: spacing.md,
     marginBottom: spacing.xl,
   },
   packCard: {
-    width: '100%',
+    width: "100%",
     backgroundColor: colors.backgroundCard,
     borderRadius: borderRadius.lg,
     padding: spacing.lg,
@@ -375,7 +421,7 @@ const styles = StyleSheet.create({
     marginHorizontal: spacing.sm,
     borderWidth: 1,
     borderColor: colors.border,
-    position: 'relative',
+    position: "relative",
     ...shadows.sm,
   },
   packCardFeatured: {
@@ -383,7 +429,7 @@ const styles = StyleSheet.create({
     borderWidth: 2,
   },
   featuredBadge: {
-    position: 'absolute',
+    position: "absolute",
     top: -10,
     right: spacing.md,
     backgroundColor: colors.warning,
@@ -392,13 +438,13 @@ const styles = StyleSheet.create({
     borderRadius: borderRadius.sm,
   },
   featuredText: {
-    color: '#1a1a2e',
+    color: "#1a1a2e",
     fontSize: fontSize.xs,
     fontWeight: fontWeight.bold,
   },
   packHeader: {
-    flexDirection: 'row',
-    alignItems: 'baseline',
+    flexDirection: "row",
+    alignItems: "baseline",
     marginBottom: spacing.xs,
   },
   packSparks: {
@@ -437,8 +483,8 @@ const styles = StyleSheet.create({
     marginTop: spacing.xs,
   },
   infoCard: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
+    flexDirection: "row",
+    alignItems: "flex-start",
     backgroundColor: colors.backgroundCard,
     marginHorizontal: spacing.lg,
     padding: spacing.md,
@@ -452,9 +498,9 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
   historyLink: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
     marginTop: spacing.lg,
     paddingVertical: spacing.md,
     gap: spacing.sm,
